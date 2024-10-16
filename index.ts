@@ -4,7 +4,8 @@ const assert = (assertion: string, p: boolean) => {
   }
 }
 
-const N = 1000;
+const chance_of_missclick = 0.0;
+const N = 1_000;
 const evidence = "refactoring".split("");
 
 const content = await Bun.file("data/test.txt")
@@ -69,4 +70,31 @@ const freqs =
      return inverted.map(count_frequencies);
   });
 
-console.log(freqs[7]);
+const pehs =
+  freqs.map(line => {
+    if (line.length !== evidence.length) {
+      return 0;
+    }
+    let probability = 1;
+    for (let i = 0; i < line.length; i++) {
+      const f = line[i].get(evidence[i]) ?? chance_of_missclick;
+      const peh = f / N;
+      probability *= peh;
+    }
+    return probability;
+  });
+
+const joint_probs =
+  pehs.map(likelihood => ph * likelihood);
+
+const marginal =
+  joint_probs.reduce((a,b) => a+b, 0);
+
+const posteriors =
+  joint_probs.map(p => p / marginal);
+
+console.log(pehs[pehs.length - 3]);
+console.log(joint_probs[joint_probs.length - 3]);
+console.log(marginal);
+console.log(posteriors.map(x => x * 1000).flatMap((x, i) => x < 1 ? [] : [[i+1, x]]));
+console.log(posteriors.reduce((a,b) => a+b, 0));
