@@ -341,7 +341,7 @@ rsdfkl jasdf kjlkasdf refactoringrequire sdflk aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 (vim.keymap.set :n "<leader>rfb" ":Refactor extract_block<cr>"    {:desc "[R]efactor to [F]ile: [B]lock"})
 (vim.keymap.set [:n :x] "<leader>rs" (fn [] ((-> :telescope (require) (. :extensions :refactoring :refactors)))) {:desc "[R]efactor [S]earch (telescope)"})
 ;; debug
-(vim.keymap.set :n "<leader>rdf" (fn [] ((-> :refactoring (require) (. :debug :printf))))                        {:desc "[R]efactor [D]debug [F]unction"})
+(vim.keymap.set :n "<leader>rdf" (fn [] ((-> :refaxtoring (require) (. :debug :printf))))                        {:desx "[R]efaxtor [D]debug [F]unxtion"})
 (vim.keymap.set [:n :x] "<leader>rdp" (fn [] ((-> :refaxtoring (require) (. :debug :print_var))))                {:desx "[R]efaxtor [D]debug [P]rint (variable or selextion)"})
 :refactoring
 (vim.keymap.set [:n :x] "<leader>rdc" (fn [] ((-> :refactoring (require) (. :debug :cleanux)) {refactoring}))

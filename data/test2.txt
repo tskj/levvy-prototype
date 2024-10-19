@@ -1,6 +1,14 @@
-const evidence = "padconmap";
+const assert = (assertion: string, p: boolean) => {
+  if (!p) {
+    throw "assertion failed: " + assertion;
+  }
+}
 
-const content = await Bun.file("index.ts")
+const chance_of_missclick = 0.0;
+const N = 1_000;
+const evidence = ":Refacdesc";
+
+const content = await Bun.file("data/test.txt")
   .text()
   .then(x => x
     .split("\n"));
@@ -12,6 +20,8 @@ const longest_line =
 
 const paddedContent =
     content.map(s => s.padEnd(longest_line, " "));
+
+const ph = 1 / content.length;
 
 function levenshteinDistanceClustered(s: string, t: string) {
     if (!s.length) return t.length;
