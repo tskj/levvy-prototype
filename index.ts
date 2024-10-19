@@ -6,95 +6,63 @@ const assert = (assertion: string, p: boolean) => {
 
 const chance_of_missclick = 0.0;
 const N = 1_000;
-const evidence = "refactoring".split("");
+const evidence = "leaderrdp";
 
 const content = await Bun.file("data/test.txt")
   .text()
   .then(x => x
-    .split("\n")
-    .map(y => y.split("")));
+    .split("\n"));
+
+console.time('my timer');
+
+const longest_line =
+    Math.max(...content.map(s => s.length));
+
+const paddedContent =
+    content.map(s => s.padEnd(longest_line, " "));
 
 const ph = 1 / content.length;
 
-function getRandomSampleInOrder(arr: string[], l: number) {
-  // Step 1: Create an array of indices to shuffle
-  const indices = Array.from({ length: arr.length }, (_, i) => i);
+const levenshteinDistance = (s: string) => (t: string): number => {
+    // If either string is empty, return the length of the other string
+    if (!s.length) return t.length;
+    if (!t.length) return s.length;
 
-  // Step 2: Fisher-Yates shuffle on the indices
-  for (let i = indices.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [indices[i], indices[j]] = [indices[j], indices[i]]; // Swap elements
-  }
+    const m = s.length;
+    const n = t.length;
+    let v0 = new Array(n + 1);
+    let v1 = new Array(n + 1);
 
-  // Step 3: Pick the first `l` shuffled indices and sort them to maintain original order
-  const selectedIndices = indices.slice(0, l).sort((a, b) => a - b);
+    // Initialize the first row of distances
+    for (let i = 0; i <= n; i++) {
+        v0[i] = i;
+    }
 
-  // Step 4: Return the elements from the original array at these selected indices
-  return selectedIndices.map(i => arr[i]);
+    for (let i = 0; i < m; i++) {
+        v1[0] = i + 1;
+
+        for (let j = 0; j < n; j++) {
+            const cost = s[i] === t[j] ? 0 : 1;
+
+            v1[j + 1] = Math.min(
+                v1[j] + 1,        // Deletion
+                v0[j + 1] + 1,    // Insertion
+                v0[j] + cost      // Substitution
+            );
+        }
+
+        // Copy current row distances to previous row for next iteration
+        [v0, v1] = [v1, v0];
+    }
+
+    return v0[n];
 }
 
-const sample = (line: string[]): string[][] => {
-  if (line.length < evidence.length) {
-    return Array(N).fill(line);
-  }
+const distances =
+  paddedContent.map(s => [s, levenshteinDistance(evidence)(s)]);
 
-  const samples: string[][] = [];
-  for (let i = 0; i < N; i++) {
-    samples.push(getRandomSampleInOrder(line, evidence.length));
-  }
-  return samples;
-};
+console.timeEnd('my timer');
 
-const samples =
-  content.map(sample);
+(distances.map((d,i)=>[i+1,d]).slice().sort(([, [,i_0]], [, [,i_1]]) => i_1 - i_0)
+  .forEach(x => console.log(x)))
 
-function transpose(matrix: string[][]) {
-  return matrix[0].map((_, colIndex) => matrix.map(row => row[colIndex]));
-}
-
-const count_frequencies = (letters: string[]): Map<string, number> => {
-  const m = new Map();
-
-  for (const l of letters) {
-    assert("l is letter", l.length === 1);
-    const frequency = m.get(l) ?? 0;
-    m.set(l, frequency + 1);
-  }
-
-  return m;
-};
-
-const freqs =
-  samples.map(s => {
-     const inverted = transpose(s);
-     return inverted.map(count_frequencies);
-  });
-
-const pehs =
-  freqs.map(line => {
-    if (line.length !== evidence.length) {
-      return 0;
-    }
-    let probability = 1;
-    for (let i = 0; i < line.length; i++) {
-      const f = line[i].get(evidence[i]) ?? chance_of_missclick;
-      const peh = f / N;
-      probability *= peh;
-    }
-    return probability;
-  });
-
-const joint_probs =
-  pehs.map(likelihood => ph * likelihood);
-
-const marginal =
-  joint_probs.reduce((a,b) => a+b, 0);
-
-const posteriors =
-  joint_probs.map(p => p / marginal);
-
-console.log(pehs[pehs.length - 3]);
-console.log(joint_probs[joint_probs.length - 3]);
-console.log(marginal);
-console.log(posteriors.map(x => x * 1000).flatMap((x, i) => x < 1 ? [] : [[i+1, x]]));
-console.log(posteriors.reduce((a,b) => a+b, 0));
