@@ -1,6 +1,6 @@
 const evidence = "padconmap";
 
-const content = await Bun.file("index.ts")
+const content = await Bun.file("data/test2.txt")
   .text()
   .then(x => x
     .split("\n"));
@@ -13,53 +13,105 @@ const longest_line =
 const paddedContent =
     content.map(s => s.padEnd(longest_line, " "));
 
-function levenshteinDistanceClustered(s: string, t: string) {
+function levenshteinDistance(s: string, t: string) {
+    // If either string is empty, return the length of the other string
     if (!s.length) return t.length;
     if (!t.length) return s.length;
 
     const m = s.length;
     const n = t.length;
-    const transitionCost = 1; // Penalty for transitioning between match and edit
     let v0 = new Array(n + 1);
     let v1 = new Array(n + 1);
 
-    // Initialize the first row
-    v0[0] = 0;
-    for (let j = 1; j <= n; j++) {
-        v0[j] = v0[j - 1] + 1 + transitionCost; // Include transition cost
+    // Initialize the first row of distances
+    for (let i = 0; i <= n; i++) {
+        v0[i] = i;
     }
 
-    for (let i = 1; i <= m; i++) {
-        v1[0] = v0[0] + 1 + transitionCost; // Include transition cost
+    for (let i = 0; i < m; i++) {
+        v1[0] = i + 1;
 
-        for (let j = 1; j <= n; j++) {
-            const cost = s[i - 1] === t[j - 1] ? 0 : 1;
+        for (let j = 0; j < n; j++) {
+            const cost = s[i] === t[j] ? 0 : 1;
 
-            if (cost === 0) {
-                // Characters match, no transition cost
-                v1[j] = v0[j - 1];
-            } else {
-                // Characters don't match, calculate costs with transition penalties
-                const deletion = v0[j] + 1 + (v0[j] === v0[j - 1] ? 0 : transitionCost);
-                const insertion = v1[j - 1] + 1 + (v1[j - 1] === v0[j - 1] ? 0 : transitionCost);
-                const substitution = v0[j - 1] + 1 + (v0[j - 1] === v0[j] ? 0 : transitionCost);
-
-                v1[j] = Math.min(deletion, insertion, substitution);
-            }
+            v1[j + 1] = Math.min(
+                v1[j] + 1,        // Deletion
+                v0[j + 1] + 1,    // Insertion
+                v0[j] + cost      // Substitution
+            );
         }
 
-        // Swap rows for next iteration
+        // Copy current row distances to previous row for next iteration
         [v0, v1] = [v1, v0];
     }
 
     return v0[n];
 }
 
+const cache = new Map<string, number>();
+
+const levvy = (q: string, h: string, padding: number): number => {
+  const del_cost = 1;
+  const ins_cost = 1;
+  const sub_cost = 1;
+
+  const hash = `(${q}):(${h})`;
+  if (cache.has(hash)) {
+    return cache.get(hash) ?? (() => {throw "nei"})();
+  }
+
+  if (h.length === 0) {
+    if (padding > q.length) {
+      const result = q.length * sub_cost + (padding - q.length) * ins_cost;
+      cache.set(hash, result);
+      return result;
+    } else {
+      const result = padding * sub_cost + (q.length - padding) * del_cost;
+      cache.set(hash, result);
+      return result;
+    }
+  }
+
+  if (q.length === 0) {
+    const result = (h.length + padding) * ins_cost;
+    cache.set(hash, result);
+    return result;
+  }
+
+  if (q.slice(0,1) === h.slice(0,1)) {
+    const result = levvy(q.slice(1), h.slice(1), padding);
+    cache.set(hash, result);
+    return result;
+  }
+
+  const del = del_cost + levvy(q.slice(1), h, padding);
+  const ins = ins_cost + levvy(q, h.slice(1), padding);
+  const sub = sub_cost + levvy(q.slice(1), h.slice(1), padding);
+
+  const result = Math.min(del, ins, sub);
+  cache.set(hash, result);
+  return result;
+};
+
 const distances =
-  paddedContent.map(s => [s, levenshteinDistanceClustered(evidence, s)]);
+  paddedContent.map(s => [s, levvy(evidence, s, longest_line)]);
+
+const distances_levvy =
+  paddedContent.map(s => [s, levvy(evidence, s, longest_line)]);
 
 console.timeEnd('my timer');
 
-(distances.map((d,i)=>[i+1,d]).slice().sort(([, [,i_0]], [, [,i_1]]) => i_1 - i_0)
+// ASSERTS:
+if (distances.length !== distances_levvy.length) throw "different #n";
+for (let i = 0; i < distances.length; i++) {
+  // @ts-ignore
+  if (distances[i][1][1] !== distances_levvy[i][1][1]) throw "not the same dist";
+  // @ts-ignore
+  if (distances[i][1][0] !== distances_levvy[i][1][0]) throw "not the same line";
+  // @ts-ignore
+  if (distances[i][0][0] !== distances_levvy[i][0][0]) throw "not the same line number";
+}
+
+(distances_levvy.map((d,i)=>[i+1,d]).slice().sort(([, [,i_0]], [, [,i_1]]) => i_1 - i_0)
   .forEach(x => console.log(x)))
 
