@@ -1,4 +1,4 @@
-const query = "conxtimeE"; // con ti m
+const query = "conxtim";
 
 const content = await Bun.file("data/test3.txt")
   .text()
@@ -48,59 +48,62 @@ function levenshteinDistance(s: string, t: string) {
     return v0[n];
 }
 
-const cache = new Map<string, [number, string[]]>();
+let cache = new Map<string, number>();
 
-const levvy = (q: string, h: string, padding: number, consecutive_match = false): [number, string[]] => {
+const levvy = (q: string, q_i: number, h: string, h_i: number, padding: number, consecutive_match = false): number => {
   const del_cost = 1;
   const ins_cost = 1;
   const sub_cost = 1;
 
-  const hash = `(${q}):(${h}):(${padding}):(${consecutive_match})`;
+  const hash = `(${q_i}):(${h_i}):(${padding}):(${consecutive_match})`;
   if (cache.has(hash)) {
     return cache.get(hash) ?? (() => {throw "nei"})();
   }
 
-  if (h.length === 0) {
-    if (padding > q.length) {
-      const dist = q.length * sub_cost + (padding - q.length) * ins_cost;
-      const result = [dist, [`change rest of query (${q}) to padding`, `pad with ${padding - q.length} characters`]] as any
+  const h_len = h.length - h_i;
+  const q_len = q.length - q_i;
+
+  if (h_len === 0) {
+    if (padding > q_len) {
+      const dist = q_len * sub_cost + (padding - q_len) * ins_cost;
+      const result = dist as any
       cache.set(hash, result);
       return result;
     } else {
-      const dist = padding * sub_cost + (q.length - padding) * del_cost;
-      const result = [dist, [`sub ${padding} characters of the remaining query (${q}) to paddding characters`, `delete the remaning query (${q.slice(padding)})`]] as any
+      const dist = padding * sub_cost + (q_len - padding) * del_cost;
+      const result = dist as any
       cache.set(hash, result);
       return result;
     }
   }
 
-  if (q.length === 0) {
-    const dist = (h.length + padding) * ins_cost;
-    const result = [dist, [`insert remaining line: (${h})`, `insert padding (${padding})`]] as any
+  if (q_len === 0) {
+    const dist = (h_len + padding) * ins_cost;
+    const result = dist as any
     cache.set(hash, result);
     return result;
   }
 
-  if (q.slice(0,1) === h.slice(0,1)) {
-    let [dist2, exp2] = levvy(q, h.slice(1), padding);
+  if (q.at(q_i) === h.at(h_i)) {
+    let dist2 = levvy(q, q_i, h, h_i + 1, padding);
     dist2 += ins_cost;
 
-    let [dist, exp] = levvy(q.slice(1), h.slice(1), padding, true);
+    let dist = levvy(q, q_i + 1, h, h_i + 1, padding, true);
     if (consecutive_match) {
       dist -= 0.5;
     }
 
     let result;
-    if (dist2 < dist) result = [dist2, [`even though we match (${q.slice(0,1)}), we ignore and move on`, ...exp2]] as any;
-    else result = [dist, [`the two characters are equal: (${q.slice(0,1)})` + (consecutive_match ? ' and we have a streak' : ''), ...exp]] as any
+    if (dist2 < dist) result = dist2 as any;
+    else result = dist as any
 
     cache.set(hash, result);
     return result;
   }
 
-  let [del, del_exp] = levvy(q.slice(1), h, padding);
-  let [ins, ins_exp] = levvy(q, h.slice(1), padding);
-  let [sub, sub_exp] = levvy(q.slice(1), h.slice(1), padding);
+  let del = levvy(q, q_i + 1, h, h_i, padding);
+  let ins = levvy(q, q_i, h, h_i + 1, padding);
+  let sub = levvy(q, q_i + 1, h, h_i + 1, padding);
 
   del += del_cost;
   ins += ins_cost;
@@ -109,20 +112,23 @@ const levvy = (q: string, h: string, padding: number, consecutive_match = false)
   const least = Math.min(del, ins, sub);
   let result;
   if (del === least) {
-    result = [del, [`delete character (${q.slice(0,1)}) from query (${q})`, ...del_exp]] as any
+    result = del as any
   }
   if (ins === least) {
-    result = [ins, [`insert character (${h.slice(0,1)}) to query (${q})`, ...ins_exp]] as any
+    result = ins as any
   }
   if (sub === least) {
-    result = [sub, [`substitute character (${q.slice(0,1)}) with (${h.slice(0,1)}) in query (${q})`, ...sub_exp]] as any
+    result = sub as any
   }
   cache.set(hash, result);
   return result;
 };
 
 const distances_levvy =
-  content.map(s => [s, levvy(query, s, longest_line - s.length)]);
+  content.map(s => {
+    cache = new Map();
+    return [s, levvy(query, 0, s, 0, longest_line - s.length)]
+  });
 
 console.timeEnd('my timer');
 
@@ -148,5 +154,5 @@ for (let i = 0; i < distances.length; i++) {
 
 */
 
-(distances_levvy.map((d,i)=>[i+1,d]).slice().sort(([, [,[i_0]]], [, [,[i_1]]]) => i_1 - i_0)
+(distances_levvy.map((d,i)=>[i+1,d]).slice().sort(([, [,i_0]], [, [,i_1]]) => i_1 - i_0)
   .forEach(x => console.log(x)))
