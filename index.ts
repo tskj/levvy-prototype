@@ -8,16 +8,13 @@ const content = await Bun.file("data/test3.txt")
 const longest_line =
     Math.max(...content.map(s => s.length));
 
-const paddedContent =
-    content.map(s => s.padEnd(longest_line, " "));
-
 console.time('my timer');
 
 let cache = new Map<string, number>();
 
 const levvy = (q: string, q_i: number, h: string, h_i: number, padding: number, consecutive_match = false): number => {
-  const i = cache.get("i") ?? 0;
-  cache.set("i", i + 1);
+  // const i = cache.get("i") ?? 0;
+  // cache.set("i", i + 1);
 
   const del_cost = 1;
   const skip_cost = 1;
@@ -44,7 +41,7 @@ const levvy = (q: string, q_i: number, h: string, h_i: number, padding: number, 
     return result;
   }
 
-  if (q.at(q_i) === h.at(h_i)) {
+  if (q[q_i] === h[h_i]) {
     let dist2 = levvy(q, q_i, h, h_i + 1, padding);
     dist2 += skip_cost;
 
@@ -90,5 +87,5 @@ const distances_levvy =
 
 console.timeEnd('my timer');
 
-(distances_levvy.map((d,i)=>[i+1,d]).slice().sort(([, [,i_0]], [, [,i_1]]) => i_1 - i_0)
-  .forEach(x => console.log(x)))
+// (distances_levvy.map((d,i)=>[i+1,d]).slice().sort(([, [,i_0]], [, [,i_1]]) => i_1 - i_0)
+//   .forEach(x => console.log(x)))
