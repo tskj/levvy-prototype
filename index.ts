@@ -1,6 +1,6 @@
-const query = "evipad";
+const query = "contim"; // con ti m
 
-const content = await Bun.file("data/test2.txt")
+const content = await Bun.file("index.ts")
   .text()
   .then(x => x
     .split("\n"));
@@ -52,7 +52,7 @@ const cache = new Map<string, number>();
 
 const levvy = (q: string, h: string, padding: number, consecutive_match = false): number => {
   const del_cost = 1;
-  const ins_cost = consecutive_match ? 1 : 1;
+  const ins_cost = 1;
   const sub_cost = 1;
 
   const hash = `(${q}):(${h}):(${padding})`;
@@ -79,7 +79,10 @@ const levvy = (q: string, h: string, padding: number, consecutive_match = false)
   }
 
   if (q.slice(0,1) === h.slice(0,1)) {
-    const result = levvy(q.slice(1), h.slice(1), padding, true);
+    let result = levvy(q.slice(1), h.slice(1), padding, true);
+    if (consecutive_match) {
+      result -= 0.5;
+    }
     cache.set(hash, result);
     return result;
   }
@@ -101,6 +104,8 @@ console.timeEnd('my timer');
 const distances_levvy =
   content.map(s => [s, levvy(query, s, longest_line - s.length)]);
 
+/*
+
 // ASSERTS:
 if (distances.length !== distances_levvy.length) throw "different #n";
 for (let i = 0; i < distances.length; i++) {
@@ -115,6 +120,8 @@ for (let i = 0; i < distances.length; i++) {
     throw "";
   }
 }
+
+*/
 
 (distances_levvy.map((d,i)=>[i+1,d]).slice().sort(([, [,i_0]], [, [,i_1]]) => i_1 - i_0)
   .forEach(x => console.log(x)))
