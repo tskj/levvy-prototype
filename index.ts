@@ -52,8 +52,7 @@ let cache = new Map<string, number>();
 
 const levvy = (q: string, q_i: number, h: string, h_i: number, padding: number, consecutive_match = false): number => {
   const del_cost = 1;
-  const ins_cost = 1;
-  const sub_cost = 1;
+  const skip_cost = 1;
 
   const hash = `(${q_i}):(${h_i}):(${padding}):(${consecutive_match})`;
   if (cache.has(hash)) {
@@ -64,21 +63,14 @@ const levvy = (q: string, q_i: number, h: string, h_i: number, padding: number, 
   const q_len = q.length - q_i;
 
   if (h_len === 0) {
-    if (padding > q_len) {
-      const dist = q_len * sub_cost + (padding - q_len) * ins_cost;
-      const result = dist as any
-      cache.set(hash, result);
-      return result;
-    } else {
-      const dist = padding * sub_cost + (q_len - padding) * del_cost;
-      const result = dist as any
-      cache.set(hash, result);
-      return result;
-    }
+    const dist = q_len * del_cost + padding * skip_cost;
+    const result = dist as any
+    cache.set(hash, result);
+    return result;
   }
 
   if (q_len === 0) {
-    const dist = (h_len + padding) * ins_cost;
+    const dist = (h_len + padding) * skip_cost;
     const result = dist as any
     cache.set(hash, result);
     return result;
@@ -86,7 +78,7 @@ const levvy = (q: string, q_i: number, h: string, h_i: number, padding: number, 
 
   if (q.at(q_i) === h.at(h_i)) {
     let dist2 = levvy(q, q_i, h, h_i + 1, padding);
-    dist2 += ins_cost;
+    dist2 += skip_cost;
 
     let dist = levvy(q, q_i + 1, h, h_i + 1, padding, true);
     if (consecutive_match) {
@@ -102,23 +94,18 @@ const levvy = (q: string, q_i: number, h: string, h_i: number, padding: number, 
   }
 
   let del = levvy(q, q_i + 1, h, h_i, padding);
-  let ins = levvy(q, q_i, h, h_i + 1, padding);
-  let sub = levvy(q, q_i + 1, h, h_i + 1, padding);
+  let skip = levvy(q, q_i, h, h_i + 1, padding);
 
   del += del_cost;
-  ins += ins_cost;
-  sub += sub_cost;
+  skip += skip_cost;
 
-  const least = Math.min(del, ins, sub);
+  const least = Math.min(del, skip);
   let result;
   if (del === least) {
     result = del as any
   }
-  if (ins === least) {
-    result = ins as any
-  }
-  if (sub === least) {
-    result = sub as any
+  if (skip === least) {
+    result = skip as any
   }
   cache.set(hash, result);
   return result;
