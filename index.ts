@@ -1,4 +1,4 @@
-const evidence = "padconmap";
+const query = "evipad";
 
 const content = await Bun.file("data/test2.txt")
   .text()
@@ -50,12 +50,12 @@ function levenshteinDistance(s: string, t: string) {
 
 const cache = new Map<string, number>();
 
-const levvy = (q: string, h: string, padding: number): number => {
+const levvy = (q: string, h: string, padding: number, consecutive_match = false): number => {
   const del_cost = 1;
-  const ins_cost = 1;
+  const ins_cost = consecutive_match ? 1 : 1;
   const sub_cost = 1;
 
-  const hash = `(${q}):(${h})`;
+  const hash = `(${q}):(${h}):(${padding})`;
   if (cache.has(hash)) {
     return cache.get(hash) ?? (() => {throw "nei"})();
   }
@@ -79,7 +79,7 @@ const levvy = (q: string, h: string, padding: number): number => {
   }
 
   if (q.slice(0,1) === h.slice(0,1)) {
-    const result = levvy(q.slice(1), h.slice(1), padding);
+    const result = levvy(q.slice(1), h.slice(1), padding, true);
     cache.set(hash, result);
     return result;
   }
@@ -94,24 +94,27 @@ const levvy = (q: string, h: string, padding: number): number => {
 };
 
 const distances =
-  paddedContent.map(s => [s, levvy(evidence, s, longest_line)]);
-
-const distances_levvy =
-  paddedContent.map(s => [s, levvy(evidence, s, longest_line)]);
+  paddedContent.map(s => [s, levenshteinDistance(query, s)]);
 
 console.timeEnd('my timer');
+
+const distances_levvy =
+  paddedContent.map(s => [s, levvy(query, s, longest_line - s.length)]);
 
 // ASSERTS:
 if (distances.length !== distances_levvy.length) throw "different #n";
 for (let i = 0; i < distances.length; i++) {
-  // @ts-ignore
-  if (distances[i][1][1] !== distances_levvy[i][1][1]) throw "not the same dist";
-  // @ts-ignore
-  if (distances[i][1][0] !== distances_levvy[i][1][0]) throw "not the same line";
-  // @ts-ignore
-  if (distances[i][0][0] !== distances_levvy[i][0][0]) throw "not the same line number";
+  if (distances[i][1] !== distances_levvy[i][1] || distances[i][0] !== (distances_levvy[i][0] as string).padEnd(longest_line, " ")) {
+    if (distances[i][1] === distances_levvy[i][1]) console.log("not the same line");
+    console.log(
+      `Difference at line ${i + 1}:`,
+      `\nString: ${JSON.stringify(distances[i][0])}`,
+      `\nlevenshteinDistance: ${distances[i][1]}`,
+      `\nlevvy: ${distances_levvy[i][1]}`
+    );
+    throw "";
+  }
 }
 
 (distances_levvy.map((d,i)=>[i+1,d]).slice().sort(([, [,i_0]], [, [,i_1]]) => i_1 - i_0)
   .forEach(x => console.log(x)))
-
