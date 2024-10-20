@@ -1,4 +1,4 @@
-const query = "contim"; // con ti m
+const query = "conxtimeE"; // con ti m
 
 const content = await Bun.file("data/test3.txt")
   .text()
@@ -82,11 +82,18 @@ const levvy = (q: string, h: string, padding: number, consecutive_match = false)
   }
 
   if (q.slice(0,1) === h.slice(0,1)) {
+    let [dist2, exp2] = levvy(q, h.slice(1), padding);
+    dist2 += ins_cost;
+
     let [dist, exp] = levvy(q.slice(1), h.slice(1), padding, true);
     if (consecutive_match) {
       dist -= 0.5;
     }
-    const result = [dist, [`the two characters are equal: (${q.slice(0,1)})` + (consecutive_match ? ' and we have a streak' : ''), ...exp]] as any
+
+    let result;
+    if (dist2 < dist) result = [dist2, [`even though we match (${q.slice(0,1)}), we ignore and move on`, ...exp2]] as any;
+    else result = [dist, [`the two characters are equal: (${q.slice(0,1)})` + (consecutive_match ? ' and we have a streak' : ''), ...exp]] as any
+
     cache.set(hash, result);
     return result;
   }
@@ -114,13 +121,13 @@ const levvy = (q: string, h: string, padding: number, consecutive_match = false)
   return result;
 };
 
-const distances =
-  paddedContent.map(s => [s, levenshteinDistance(query, s)]);
+const distances_levvy =
+  content.map(s => [s, levvy(query, s, longest_line - s.length)]);
 
 console.timeEnd('my timer');
 
-const distances_levvy =
-  content.map(s => [s, levvy(query, s, longest_line - s.length)]);
+const distances =
+  paddedContent.map(s => [s, levenshteinDistance(query, s)]);
 
 /*
 
