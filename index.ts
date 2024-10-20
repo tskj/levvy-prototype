@@ -99,7 +99,7 @@ const distances =
 console.timeEnd('my timer');
 
 const distances_levvy =
-  paddedContent.map(s => [s, levvy(query, s, longest_line - s.length)]);
+  content.map(s => [s, levvy(query, s, longest_line - s.length)]);
 
 // ASSERTS:
 if (distances.length !== distances_levvy.length) throw "different #n";
