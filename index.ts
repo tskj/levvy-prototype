@@ -1,4 +1,4 @@
-const query = "conxtim";
+const query = "conxtimE";
 
 const content = await Bun.file("data/test3.txt")
   .text()
@@ -80,14 +80,17 @@ const levvy = (q: string, q_i: number, h: string, h_i: number, padding: number, 
     let dist2 = levvy(q, q_i, h, h_i + 1, padding);
     dist2 += skip_cost;
 
+    let dist3 = levvy(q, q_i + 1, h, h_i, padding);
+    dist3 += del_cost;
+
     let dist = levvy(q, q_i + 1, h, h_i + 1, padding, true);
     if (consecutive_match) {
       dist -= 0.5;
     }
 
-    let result;
-    if (dist2 < dist) result = dist2 as any;
-    else result = dist as any
+    let result = dist3;
+    if (dist2 < result) result = dist2 as any;
+    if (dist < result) result = dist as any
 
     cache.set(hash, result);
     return result;
