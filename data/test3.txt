@@ -1,11 +1,10 @@
-const query = "contim"; // con ti m
-
-const content = await Bun.file("data/test3.txt")
+const content = await Bun.file("index.ts")
   .text()
   .then(x => x
     .split("\n"));
 
 console.time('my timer');
+// constle.time('my timer');
 
 const longest_line =
     Math.max(...content.map(s => s.length));
@@ -143,3 +142,4 @@ for (let i = 0; i < distances.length; i++) {
 
 (distances_levvy.map((d,i)=>[i+1,d]).slice().sort(([, [,[i_0]]], [, [,[i_1]]]) => i_1 - i_0)
   .forEach(x => console.log(x)))
+
