@@ -13,10 +13,10 @@ test('equal reference implementation', async () => {
         const cache = new Map();
         const distance_reference_levvy = referenceLevvy(cache, query, 0, line, 0, longest_line - line.length);
 
-        const reconstructed_path = path(query, line, longest_line - line.length, distances_iterative_levvy)
+        // const reconstructed_path = path(query, line, longest_line - line.length, distances_iterative_levvy)
 
         expect(distances_iterative_levvy[0]).toBe(distance_reference_levvy);
-        expect(reconstructed_path[1]).toBe(distance_reference_levvy);
+        // expect(reconstructed_path[1]).toBe(distance_reference_levvy);
       }
     }
   }

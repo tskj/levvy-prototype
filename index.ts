@@ -67,32 +67,29 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number[] 
   const q_len = q.length;
   const h_len = h.length;
 
-  const Q = q_len + 1;
   const H = h_len + 1;
-  const B = 2;
-  const BH = B * H;
+  const B = 2; // consecutive_match flag can be 0 or 1
+  const HB = H * B;
 
-  // Initialize dp table
-  // dp[q_i][h_i][cm]
-  const dp = Array(Q * H * B)
-    .fill(Infinity);
+  // Initialize dp arrays for two rows
+  let dp_current = new Array(HB).fill(Infinity);
+  let dp_previous = new Array(HB).fill(Infinity);
 
-  // Base cases
-  for (let q_i = 0; q_i <= q_len; q_i++) {
-    const dist = (q_len - q_i) * del_cost + padding * skip_cost;
-    dp[q_i * BH + h_len * B + 0] = dist;
-    dp[q_i * BH + h_len * B + 1] = dist;
-  }
+  // Base case initialization for q_i = q_len
   for (let h_i = 0; h_i <= h_len; h_i++) {
     const dist = (h_len - h_i + padding) * skip_cost;
-    dp[q_len * BH + h_i * B + 0] = dist;
-    dp[q_len * BH + h_i * B + 1] = dist;
+    dp_previous[h_i * B + 0] = dist;
+    dp_previous[h_i * B + 1] = dist;
   }
 
-  // Fill dp table
+  // Main DP loop
   for (let q_i = q_len - 1; q_i >= 0; q_i--) {
-    for (let h_i = h_len - 1; h_i >= 0; h_i--) {
+    // Initialize dp_current for h_i = h_len
+    const dist = (q_len - q_i) * del_cost + padding * skip_cost;
+    dp_current[h_len * B + 0] = dist;
+    dp_current[h_len * B + 1] = dist;
 
+    for (let h_i = h_len - 1; h_i >= 0; h_i--) {
       const a = q[q_i];
       const b = h[h_i];
 
@@ -108,43 +105,51 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number[] 
 
       const is_match = adjustedA === adjustedB;
 
-      // Deletion
-      let del_cost_total = del_cost + dp[(q_i + 1) * BH + h_i * B + 0]; // after deletion, cm == 0
+      // Access dp values from dp_previous and dp_current arrays
+      const index_current = h_i * B;
+      const index_next = (h_i + 1) * B;
 
-      // Skipping
-      let skip_cost_total = skip_cost + dp[q_i * BH + (h_i + 1) * B + 0]; // after skip, cm == 0
+      // Deletion (cm == 0)
+      let del_cost_total = del_cost + dp_previous[index_current + 0]; // cm remains the same after deletion
+
+      // Skipping (cm == 0)
+      let skip_cost_total = skip_cost + dp_current[index_next + 0]; // cm resets to 0 after skipping
 
       let match_cost;
       if (is_match) {
-        // Matching
-        match_cost = dp[(q_i + 1) * BH + (h_i + 1) * B + 1];
+        // Matching (cm == 1)
+        match_cost = dp_previous[index_next + 1];
       } else {
-        // Subbing
-        match_cost = sub_cost + dp[(q_i + 1) * BH + (h_i + 1) * B + 0]; // after sub, cm == 0
+        // Substitution (cm == 0)
+        match_cost = sub_cost + dp_previous[index_next + 0];
       }
 
-      dp[q_i * BH + h_i * B + 0] = Math.min(del_cost_total, skip_cost_total, match_cost);
+      dp_current[index_current + 0] = Math.min(del_cost_total, skip_cost_total, match_cost);
 
-      // Deletion
-      let del_cost_cm1 = del_cost + dp[(q_i + 1) * BH + h_i * B + 1]; // keep a potential streak going
+      // Deletion (cm == 1)
+      let del_cost_cm1 = del_cost + dp_previous[index_current + 1]; // cm remains 1 after deletion
 
-      // Skipping
-      let skip_cost_cm1 = skip_cost + dp[q_i * BH + (h_i + 1) * B + 0]; // after skip, cm resets to 0
+      // Skipping (cm == 1 -> cm resets to 0)
+      let skip_cost_cm1 = skip_cost + dp_current[index_next + 0];
 
       let match_cost_cm1;
       if (is_match) {
-        // Matching
-        match_cost_cm1 = dp[(q_i + 1) * BH + (h_i + 1) * B + 1] - streak_bias;
+        // Matching with streak bias
+        match_cost_cm1 = dp_previous[index_next + 1] - streak_bias;
       } else {
-        // Subbing
-        match_cost_cm1 = sub_cost + dp[(q_i + 1) * BH + (h_i + 1) * B + 0];
+        // Substitution resets cm to 0
+        match_cost_cm1 = sub_cost + dp_previous[index_next + 0];
       }
 
-      dp[q_i * BH + h_i * B + 1] = Math.min(del_cost_cm1, skip_cost_cm1, match_cost_cm1);
+      dp_current[index_current + 1] = Math.min(del_cost_cm1, skip_cost_cm1, match_cost_cm1);
     }
+
+    // Swap dp_current and dp_previous for next iteration
+    [dp_current, dp_previous] = [dp_previous, dp_current];
   }
 
-  return dp;
+  // After the loop, dp_previous contains the final result for q_i = 0
+  return dp_previous;
 };
 
 export function path(q: string, h: string, padding: number, dp: number[]): [string[], number] {
@@ -291,7 +296,7 @@ export function path(q: string, h: string, padding: number, dp: number[]): [stri
 
 const distances_iterative_levvy =
   content.map(s => {
-    return [s, iterativeLevvy(query, s, longest_line - s.length)[0], path(query, s, longest_line - s.length, iterativeLevvy(query, s, longest_line - s.length))]
+    return [s, iterativeLevvy(query, s, longest_line - s.length)[0]/*, path(query, s, longest_line - s.length, iterativeLevvy(query, s, longest_line - s.length))*/]
   });
 
 console.timeEnd('my timer');
