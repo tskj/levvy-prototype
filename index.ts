@@ -59,6 +59,8 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number =>
   const q_len = q.length;
   const h_len = h.length;
 
+  const worst_possible_distance = q_len * del_cost + h_len * skip_cost + padding * skip_cost;
+
   // Initialize dp table
   // dp[q_i][h_i][cm]
   const dp = Array(q_len + 1)
@@ -66,7 +68,7 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number =>
     .map(() =>
       Array(h_len + 1)
         .fill(0)
-        .map(() => [Infinity, Infinity])
+        .map(() => [worst_possible_distance + 1, worst_possible_distance + 1])
     );
 
   // Base cases
@@ -84,46 +86,36 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number =>
   // Fill dp table
   for (let q_i = q_len - 1; q_i >= 0; q_i--) {
     for (let h_i = h_len - 1; h_i >= 0; h_i--) {
-      // dp[q_i][h_i][0]
-      let costs_cm0 = [];
 
       // Deletion
       let del_cost_total = del_cost + dp[q_i + 1][h_i][0]; // after deletion, cm == 0
-      costs_cm0.push(del_cost_total);
 
       // Skipping
       let skip_cost_total = skip_cost + dp[q_i][h_i + 1][0]; // after skip, cm == 0
-      costs_cm0.push(skip_cost_total);
 
+      let match_cost = worst_possible_distance;
       if (q[q_i] === h[h_i]) {
         // Matching
         // From dp[q_i + 1][h_i + 1][1], since after matching, cm == 1
-        let match_cost = dp[q_i + 1][h_i + 1][1];
-        // No streak bias applied since current cm == 0
-        costs_cm0.push(match_cost);
+        match_cost = dp[q_i + 1][h_i + 1][1];
       }
 
-      dp[q_i][h_i][0] = Math.min(...costs_cm0);
-
-      // dp[q_i][h_i][1]
-      let costs_cm1 = [];
+      dp[q_i][h_i][0] = Math.min(del_cost_total, skip_cost_total, match_cost);
 
       // Deletion
       let del_cost_cm1 = del_cost + dp[q_i + 1][h_i][1]; // keep a potential streak going
-      costs_cm1.push(del_cost_cm1);
 
       // Skipping
       let skip_cost_cm1 = skip_cost + dp[q_i][h_i + 1][0]; // after skip, cm resets to 0
-      costs_cm1.push(skip_cost_cm1);
 
+      let match_cost_cm1 = worst_possible_distance;
       if (q[q_i] === h[h_i]) {
         // Matching
         // From dp[q_i + 1][h_i + 1][1]
-        let match_cost = dp[q_i + 1][h_i + 1][1] - streak_bias;
-        costs_cm1.push(match_cost);
+        match_cost_cm1 = dp[q_i + 1][h_i + 1][1] - streak_bias;
       }
 
-      dp[q_i][h_i][1] = Math.min(...costs_cm1);
+      dp[q_i][h_i][1] = Math.min(del_cost_cm1, skip_cost_cm1, match_cost_cm1);
     }
   }
 
