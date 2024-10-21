@@ -1,4 +1,4 @@
-const query = "conxtime";
+const query = "cxoxntxixmxe";
 
 const content = await Bun.file("data/test3.txt")
   .text()
@@ -138,28 +138,12 @@ const distances_iterative_levvy =
 
 console.timeEnd('my timer');
 
-const distances_levvy =
-  content.map(s => {
-    const cache = new Map();
-    return [s, referenceLevvy(cache, query, 0, s, 0, longest_line - s.length)]
-  });
+// const distances_levvy =
+//   content.map(s => {
+//     const cache = new Map();
+//     return [s, referenceLevvy(cache, query, 0, s, 0, longest_line - s.length)]
+//   });
 
-for (let i = 0; i < distances_iterative_levvy.length; i++) {
-  const [str_iterative, dist_iterative] = distances_iterative_levvy[i];
-  const [str_recursive, dist_recursive] = distances_levvy[i];
-
-  // Assert that the strings are the same
-  if (str_iterative !== str_recursive) {
-    throw new Error(`String mismatch at index ${i}: "${str_iterative}" vs "${str_recursive}"`);
-  }
-
-  // Assert that the distances are the same
-  if (dist_iterative !== dist_recursive) {
-    throw new Error(`Distance mismatch at index ${i} for string "${str_iterative}": iterative=${dist_iterative}, recursive=${dist_recursive}`);
-  }
-}
-
-console.log("All results match between levvy and iterativeLevvy.");
 
 (distances_iterative_levvy.map((d,i)=>[i+1,d]).slice().sort(([, [,i_0 ]]: any, [, [,i_1]]: any) => i_1 - i_0)
   .forEach(x => console.log(x)))
