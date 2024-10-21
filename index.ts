@@ -161,5 +161,5 @@ for (let i = 0; i < distances_iterative_levvy.length; i++) {
 
 console.log("All results match between levvy and iterativeLevvy.");
 
-(distances_iterative_levvy.map((d,i)=>[i+1,d]).slice().sort(([, [,i_0]], [, [,i_1]]) => i_1 - i_0)
+(distances_iterative_levvy.map((d,i)=>[i+1,d]).slice().sort(([, [,i_0 ]]: any, [, [,i_1]]: any) => i_1 - i_0)
   .forEach(x => console.log(x)))
