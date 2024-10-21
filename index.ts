@@ -12,14 +12,12 @@ console.time('my timer');
 
 const del_cost = 1;
 const skip_cost = 1;
-const streak_bias = 0.5;
+const streak_bias = 1;
 
-let cache = new Map<string, number>();
-
-const levvy = (q: string, q_i: number, h: string, h_i: number, padding: number, consecutive_match = false): number => {
+export const referenceLevvy = (c: Map<string, number>, q: string, q_i: number, h: string, h_i: number, padding: number, consecutive_match = false): number => {
   const hash = `(${q_i}):(${h_i}):(${padding}):(${consecutive_match})`;
-  if (cache.has(hash)) {
-    return cache.get(hash) ?? (() => {throw "nei"})();
+  if (c.has(hash)) {
+    return c.get(hash) ?? (() => {throw "nei"})();
   }
 
   const h_len = h.length - h_i;
@@ -28,36 +26,36 @@ const levvy = (q: string, q_i: number, h: string, h_i: number, padding: number, 
   if (h_len === 0) {
     const dist = q_len * del_cost + padding * skip_cost;
     const result = dist as any
-    cache.set(hash, result);
+    c.set(hash, result);
     return result;
   }
 
   if (q_len === 0) {
     const dist = (h_len + padding) * skip_cost;
     const result = dist as any
-    cache.set(hash, result);
+    c.set(hash, result);
     return result;
   }
 
   if (q[q_i] === h[h_i]) {
-    let skip = levvy(q, q_i, h, h_i + 1, padding) + skip_cost;
-    let del = levvy(q, q_i + 1, h, h_i, padding) + del_cost;
-    let match = levvy(q, q_i + 1, h, h_i + 1, padding, true) - (consecutive_match ? streak_bias : 0);
+    let skip = referenceLevvy(c, q, q_i, h, h_i + 1, padding) + skip_cost;
+    let del = referenceLevvy(c, q, q_i + 1, h, h_i, padding) + del_cost;
+    let match = referenceLevvy(c, q, q_i + 1, h, h_i + 1, padding, true) - (consecutive_match ? streak_bias : 0);
 
     let result = Math.min(match, skip, del);
-    cache.set(hash, result);
+    c.set(hash, result);
     return result;
   }
 
-  let del = levvy(q, q_i + 1, h, h_i, padding) + del_cost;
-  let skip = levvy(q, q_i, h, h_i + 1, padding) + skip_cost;
+  let del = referenceLevvy(c, q, q_i + 1, h, h_i, padding) + del_cost;
+  let skip = referenceLevvy(c, q, q_i, h, h_i + 1, padding) + skip_cost;
 
   const result = Math.min(del, skip);
-  cache.set(hash, result);
+  c.set(hash, result);
   return result;
 };
 
-const iterativeLevvy = (q: string, h: string, padding: number): number => {
+export const iterativeLevvy = (q: string, h: string, padding: number): number => {
   const q_len = q.length;
   const h_len = h.length;
 
@@ -142,8 +140,8 @@ console.timeEnd('my timer');
 
 const distances_levvy =
   content.map(s => {
-    cache = new Map();
-    return [s, levvy(query, 0, s, 0, longest_line - s.length)]
+    const cache = new Map();
+    return [s, referenceLevvy(cache, query, 0, s, 0, longest_line - s.length)]
   });
 
 for (let i = 0; i < distances_iterative_levvy.length; i++) {
