@@ -42,7 +42,7 @@ test('equal reference implementation', async () => {
 
     for (const query of queries) {
       for (const line of lines) {
-        const distances_iterative_levvy = iterativeLevvy(query, line, longest_line - line.length)
+        const distances_iterative_levvy = iterativeLevvy(query, line, longest_line - line.length)[0]
 
         const cache = new Map();
         const distance_reference_levvy = referenceLevvy(cache, query, 0, line, 0, longest_line - line.length);
