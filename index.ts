@@ -39,7 +39,7 @@ export const referenceLevvy = (c: Map<string, number>, q: string, q_i: number, h
 
   if (q[q_i] === h[h_i]) {
     let skip = referenceLevvy(c, q, q_i, h, h_i + 1, padding) + skip_cost;
-    let del = referenceLevvy(c, q, q_i + 1, h, h_i, padding) + del_cost;
+    let del = referenceLevvy(c, q, q_i + 1, h, h_i, padding, consecutive_match) + del_cost;
     let match = referenceLevvy(c, q, q_i + 1, h, h_i + 1, padding, true) - (consecutive_match ? streak_bias : 0);
 
     let result = Math.min(match, skip, del);
@@ -47,7 +47,7 @@ export const referenceLevvy = (c: Map<string, number>, q: string, q_i: number, h
     return result;
   }
 
-  let del = referenceLevvy(c, q, q_i + 1, h, h_i, padding) + del_cost;
+  let del = referenceLevvy(c, q, q_i + 1, h, h_i, padding, consecutive_match) + del_cost;
   let skip = referenceLevvy(c, q, q_i, h, h_i + 1, padding) + skip_cost;
 
   const result = Math.min(del, skip);
@@ -109,7 +109,7 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number =>
       let costs_cm1 = [];
 
       // Deletion
-      let del_cost_cm1 = del_cost + dp[q_i + 1][h_i][0]; // after deletion, cm resets to 0
+      let del_cost_cm1 = del_cost + dp[q_i + 1][h_i][1]; // keep a potential streak going
       costs_cm1.push(del_cost_cm1);
 
       // Skipping
