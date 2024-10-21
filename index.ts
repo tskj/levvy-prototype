@@ -61,28 +61,26 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number =>
   const q_len = q.length;
   const h_len = h.length;
 
-  const worst_possible_distance = q_len * del_cost + h_len * skip_cost + padding * skip_cost;
+  const Q = q_len + 1;
+  const H = h_len + 1;
+  const B = 2;
+  const BH = B * H;
 
   // Initialize dp table
   // dp[q_i][h_i][cm]
-  const dp = Array(q_len + 1)
-    .fill(0)
-    .map(() =>
-      Array(h_len + 1)
-        .fill(0)
-        .map(() => [worst_possible_distance + 1, worst_possible_distance + 1])
-    );
+  const dp = Array(Q * H * B)
+    .fill(0);
 
   // Base cases
   for (let q_i = 0; q_i <= q_len; q_i++) {
     const dist = (q_len - q_i) * del_cost + padding * skip_cost;
-    dp[q_i][h_len][0] = dist;
-    dp[q_i][h_len][1] = dist;
+    dp[q_i * BH + h_len * B + 0] = dist;
+    dp[q_i * BH + h_len * B + 1] = dist;
   }
   for (let h_i = 0; h_i <= h_len; h_i++) {
     const dist = (h_len - h_i + padding) * skip_cost;
-    dp[q_len][h_i][0] = dist;
-    dp[q_len][h_i][1] = dist;
+    dp[q_len * BH + h_i * B + 0] = dist;
+    dp[q_len * BH + h_i * B + 1] = dist;
   }
 
   // Fill dp table
@@ -90,45 +88,42 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number =>
     for (let h_i = h_len - 1; h_i >= 0; h_i--) {
 
       // Deletion
-      let del_cost_total = del_cost + dp[q_i + 1][h_i][0]; // after deletion, cm == 0
+      let del_cost_total = del_cost + dp[(q_i + 1) * BH + h_i * B + 0]; // after deletion, cm == 0
 
       // Skipping
-      let skip_cost_total = skip_cost + dp[q_i][h_i + 1][0]; // after skip, cm == 0
+      let skip_cost_total = skip_cost + dp[q_i * BH + (h_i + 1) * B + 0]; // after skip, cm == 0
 
       let match_cost;
       if (q[q_i] === h[h_i]) {
         // Matching
-        // From dp[q_i + 1][h_i + 1][1], since after matching, cm == 1
-        match_cost = dp[q_i + 1][h_i + 1][1];
+        match_cost = dp[(q_i + 1) * BH + (h_i + 1) * B + 1];
       } else {
         // Subbing
-        match_cost = sub_cost + dp[q_i + 1][h_i + 1][0]; // after sub, cm == 0
+        match_cost = sub_cost + dp[(q_i + 1) * BH + (h_i + 1) * B + 0]; // after sub, cm == 0
       }
 
-      dp[q_i][h_i][0] = Math.min(del_cost_total, skip_cost_total, match_cost);
+      dp[q_i * BH + h_i * B + 0] = Math.min(del_cost_total, skip_cost_total, match_cost);
 
       // Deletion
-      let del_cost_cm1 = del_cost + dp[q_i + 1][h_i][1]; // keep a potential streak going
+      let del_cost_cm1 = del_cost + dp[(q_i + 1) * BH + h_i * B + 1]; // keep a potential streak going
 
       // Skipping
-      let skip_cost_cm1 = skip_cost + dp[q_i][h_i + 1][0]; // after skip, cm resets to 0
+      let skip_cost_cm1 = skip_cost + dp[q_i * BH + (h_i + 1) * B + 0]; // after skip, cm resets to 0
 
       let match_cost_cm1;
       if (q[q_i] === h[h_i]) {
         // Matching
-        // From dp[q_i + 1][h_i + 1][1]
-        match_cost_cm1 = dp[q_i + 1][h_i + 1][1] - streak_bias;
+        match_cost_cm1 = dp[(q_i + 1) * BH + (h_i + 1) * B + 1] - streak_bias;
       } else {
         // Subbing
-        match_cost_cm1 = sub_cost + dp[q_i + 1][h_i + 1][0];
+        match_cost_cm1 = sub_cost + dp[(q_i + 1) * BH + (h_i + 1) * B + 0];
       }
 
-      dp[q_i][h_i][1] = Math.min(del_cost_cm1, skip_cost_cm1, match_cost_cm1);
+      dp[q_i * BH + h_i * B + 1] = Math.min(del_cost_cm1, skip_cost_cm1, match_cost_cm1);
     }
   }
 
-  // The final result is dp[0][0][0], since we start with cm == 0
-  return dp[0][0][0];
+  return dp[0];
 };
 
 const distances_iterative_levvy =
