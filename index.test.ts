@@ -1,4 +1,4 @@
-import { iterativeLevvy, referenceLevvy } from ".";
+import { iterativeLevvy, path, query, referenceLevvy } from ".";
 
 const queries = [
   ""
@@ -21,6 +21,7 @@ const queries = [
   , ":refactoringinginging"
   , ";;"
   , "æøå"
+  , query
 ];
 
 const files = [
@@ -42,12 +43,15 @@ test('equal reference implementation', async () => {
 
     for (const query of queries) {
       for (const line of lines) {
-        const distances_iterative_levvy = iterativeLevvy(query, line, longest_line - line.length)[0]
+        const distances_iterative_levvy = iterativeLevvy(query, line, longest_line - line.length)
 
         const cache = new Map();
         const distance_reference_levvy = referenceLevvy(cache, query, 0, line, 0, longest_line - line.length);
 
-        expect(distances_iterative_levvy).toBe(distance_reference_levvy);
+        const reconstructed_path = path(query, line, longest_line - line.length, distances_iterative_levvy)
+
+        expect(distances_iterative_levvy[0]).toBe(distance_reference_levvy);
+        expect(reconstructed_path[1]).toBe(distance_reference_levvy);
       }
     }
   }
@@ -172,3 +176,4 @@ test("Benchmark iterativeLevvy vs referenceLevvy over lines in files", async () 
     console.log("----------------------------------------");
   }
 });
+

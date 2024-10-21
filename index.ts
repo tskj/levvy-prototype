@@ -1,4 +1,4 @@
-const query = "cxoxnxtxixmxe";
+export const query = "awsabun()";
 
 const content = await Bun.file("data/test3.txt")
   .text()
@@ -13,10 +13,10 @@ console.time('my timer');
 const del_cost = 2;
 const skip_cost = 2;
 const sub_cost = 3;
-const streak_bias = 2;
+const streak_bias = 3;
 
 export const referenceLevvy = (c: Map<string, number>, q: string, q_i: number, h: string, h_i: number, padding: number, consecutive_match = false): number => {
-  const hash = `(${q_i}):(${h_i}):(${padding}):(${consecutive_match})`;
+  const hash = `(${q_i}):(${h_i}):(${consecutive_match})`;
   if (c.has(hash)) {
     return c.get(hash) ?? (() => {throw "nei"})();
   }
@@ -126,108 +126,142 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number[] 
   return dp;
 };
 
-const path = (
-  q: string,
-  h: string,
-  padding: number,
-  dp: number[]
-): string[] => {
+export function path(q: string, h: string, padding: number, dp: number[]): [string[], number] {
+  // courtesy o1-preview
+  const path: string[] = [];
   const q_len = q.length;
   const h_len = h.length;
-
+  const adjusted_h_len = h_len + padding;
   const Q = q_len + 1;
-  const H = h_len + 1;
+  const H = h_len + 1; // DP table only goes up to h_len
   const B = 2;
   const BH = B * H;
 
   let q_i = 0;
   let h_i = 0;
-  let cm = 0; // Start with cm = 0 (no consecutive match)
-
-  const result = [];
-
-  // Ensure cost constants are accessible
-  const delCost = del_cost;
-  const skipCost = skip_cost;
-  const subCost = sub_cost;
-  const streakBias = streak_bias;
+  let cm = 0; // consecutive_match: 0 or 1
+  let total_cost = 0;
 
   while (q_i < q_len || h_i < h_len) {
-    // Get current dp value
-    const dp_index = q_i * BH + h_i * B + cm;
-    const dp_current = dp[dp_index];
+    // For dp indexing, h_i cannot exceed h_len
+    const dp_h_i = Math.min(h_i, h_len);
+    const index = q_i * BH + dp_h_i * B + cm;
+    const current_cost = dp[index];
 
-    let operations = [];
+    const options = [];
 
-    // Initialize min_cost to a large number
-    let min_cost = Infinity;
-
-    // Deletion
+    // Deletion (only if q_i < q_len)
     if (q_i < q_len) {
-      const del_cm = cm === 1 ? 1 : 0; // cm may stay the same if cm === 1
-      const del_dp_index = (q_i + 1) * BH + h_i * B + del_cm;
-      const delTotalCost = delCost + dp[del_dp_index];
-      if (delTotalCost <= min_cost) {
-        if (delTotalCost < min_cost) operations = [];
-        min_cost = delTotalCost;
-        operations.push({ op: 'del', q_i: q_i + 1, h_i: h_i, cm: del_cm });
-      }
+      const next_cm = cm;
+      const del_index = (q_i + 1) * BH + dp_h_i * B + next_cm;
+      const op_cost = del_cost;
+      const cost = op_cost + dp[del_index];
+
+      options.push({
+        op: 'delete ' + q[q_i],
+        op_cost,
+        cost,
+        q_i: q_i + 1,
+        h_i,
+        cm: next_cm,
+      });
     }
 
-    // Skipping
+    // Skipping (only if h_i < h_len)
     if (h_i < h_len) {
-      const skip_dp_index = q_i * BH + (h_i + 1) * B + 0; // cm resets to 0
-      const skipTotalCost = skipCost + dp[skip_dp_index];
-      if (skipTotalCost <= min_cost) {
-        if (skipTotalCost < min_cost) operations = [];
-        min_cost = skipTotalCost;
-        operations.push({ op: 'skip', q_i: q_i, h_i: h_i + 1, cm: 0 });
-      }
+      const next_cm = 0;
+      const skip_dp_h_i = h_i + 1;
+      const skip_index = q_i * BH + skip_dp_h_i * B + next_cm;
+      const op_cost = skip_cost;
+      const cost = op_cost + dp[skip_index];
+
+      options.push({
+        op: 'skip',
+        op_cost,
+        cost,
+        q_i,
+        h_i: h_i + 1,
+        cm: next_cm,
+      });
     }
 
-    // Matching or Substitution
+    // Match or Substitute (only if q_i < q_len and h_i < h_len)
     if (q_i < q_len && h_i < h_len) {
       if (q[q_i] === h[h_i]) {
         // Matching
-        const match_cm = 1; // cm becomes 1 after a match
-        const match_dp_index = (q_i + 1) * BH + (h_i + 1) * B + match_cm;
-        let matchTotalCost = dp[match_dp_index];
-        if (cm === 1) matchTotalCost -= streakBias;
-        if (matchTotalCost <= min_cost) {
-          if (matchTotalCost < min_cost) operations = [];
-          min_cost = matchTotalCost;
-          operations.push({ op: 'match', q_i: q_i + 1, h_i: h_i + 1, cm: match_cm });
-        }
+        const next_cm = 1;
+        const match_index = (q_i + 1) * BH + (h_i + 1) * B + next_cm;
+        const op_cost = cm === 1 ? -streak_bias : 0;
+        const cost = op_cost + dp[match_index];
+
+        options.push({
+          op: 'match ' + q[q_i],
+          op_cost,
+          cost,
+          q_i: q_i + 1,
+          h_i: h_i + 1,
+          cm: next_cm,
+        });
       } else {
         // Substitution
-        const sub_dp_index = (q_i + 1) * BH + (h_i + 1) * B + 0; // cm resets to 0
-        const subTotalCost = subCost + dp[sub_dp_index];
-        if (subTotalCost <= min_cost) {
-          if (subTotalCost < min_cost) operations = [];
-          min_cost = subTotalCost;
-          operations.push({ op: 'sub', q_i: q_i + 1, h_i: h_i + 1, cm: 0 });
-        }
+        const next_cm = 0;
+        const sub_index = (q_i + 1) * BH + (h_i + 1) * B + next_cm;
+        const op_cost = sub_cost;
+        const cost = op_cost + dp[sub_index];
+
+        options.push({
+          op: 'substitute ' + q[q_i] + ' for ' + h[h_i],
+          op_cost,
+          cost,
+          q_i: q_i + 1,
+          h_i: h_i + 1,
+          cm: next_cm,
+        });
       }
     }
 
-    // Choose the operation with the highest priority in case of a tie
-    const op_priority = { 'match': 1, 'sub': 2, 'del': 3, 'skip': 4 };
-    operations.sort((a, b) => op_priority[a.op] - op_priority[b.op]);
+    // Find valid operations matching current cost
+    const valid_options = options.filter((option) => option.cost === current_cost);
 
-    // Select the operation
-    const best_op = operations[0];
+    if (valid_options.length === 0) {
+      // If both strings are fully processed, we're done
+      if (q_i >= q_len && h_i >= h_len) {
+        break;
+      } else {
+        throw new Error(`No valid operation at q_i=${q_i}, h_i=${h_i}, cm=${cm}`);
+      }
+    }
 
-    // Update indices and cm
-    q_i = best_op.q_i;
-    h_i = best_op.h_i;
-    cm = best_op.cm;
+    // Prioritize operations
+    const operation_order = ['match', 'substitute', 'delete', 'skip'];
+    let chosen_option;
+    for (const op_name of operation_order) {
+      chosen_option = valid_options.find((option) => option.op.startsWith(op_name));
+      if (chosen_option) break;
+    }
 
-    // Add operation to result
-    result.push(best_op.op);
+    if (!chosen_option) {
+      throw new Error(`Operation not found at q_i=${q_i}, h_i=${h_i}, cm=${cm}`);
+    }
+
+    path.push(chosen_option.op);
+    total_cost += chosen_option.op_cost;
+
+    q_i = chosen_option.q_i;
+    h_i = chosen_option.h_i;
+    cm = chosen_option.cm;
   }
 
-  return result;
-};
+  // After processing both strings, account for any remaining padding cost without adding 'skip' operations
+  if (h_i < adjusted_h_len) {
+    const remaining_skips = adjusted_h_len - h_i;
+    total_cost += remaining_skips * skip_cost;
+    // Optionally, you can note that the cost of the remaining skips has been added
+    // path.push(`... (${remaining_skips} skips omitted)`);
+  }
+
+  return [path, total_cost];
+}
 
 const distances_iterative_levvy =
   content.map(s => {
