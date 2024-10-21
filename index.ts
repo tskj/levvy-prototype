@@ -1,4 +1,4 @@
-export const query = "awsabun()";
+export const query = "awaitbun";
 
 const content = await Bun.file("data/test3.txt")
   .text()
@@ -14,6 +14,8 @@ const del_cost = 2;
 const skip_cost = 2;
 const sub_cost = 3;
 const streak_bias = 3;
+
+const case_setting: 0 | 1 | 2 = 1 as any; // 0 means exact match, 1 means smart and 2 insensitive
 
 export const referenceLevvy = (c: Map<string, number>, q: string, q_i: number, h: string, h_i: number, padding: number, consecutive_match = false): number => {
   const hash = `(${q_i}):(${h_i}):(${consecutive_match})`;
@@ -38,7 +40,11 @@ export const referenceLevvy = (c: Map<string, number>, q: string, q_i: number, h
     return result;
   }
 
-  if (q[q_i] === h[h_i]) {
+  const a = q[q_i];
+  const b = h[h_i];
+  const is_match = case_setting === 0 ? a === b : (case_setting === 1 ? (a.toLowerCase() === a ? a === b.toLowerCase() : a === b) : a.toLowerCase() === b.toLowerCase());
+
+  if (is_match) {
     let skip = referenceLevvy(c, q, q_i, h, h_i + 1, padding) + skip_cost;
     let del = referenceLevvy(c, q, q_i + 1, h, h_i, padding, consecutive_match) + del_cost;
     let match = referenceLevvy(c, q, q_i + 1, h, h_i + 1, padding, true) - (consecutive_match ? streak_bias : 0);
@@ -87,6 +93,21 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number[] 
   for (let q_i = q_len - 1; q_i >= 0; q_i--) {
     for (let h_i = h_len - 1; h_i >= 0; h_i--) {
 
+      const a = q[q_i];
+      const b = h[h_i];
+
+      let adjustedA = a;
+      let adjustedB = b;
+
+      if (case_setting === 2) {
+        adjustedA = a.toLowerCase();
+        adjustedB = b.toLowerCase();
+      } else if (case_setting === 1 && a === a.toLowerCase()) {
+        adjustedB = b.toLowerCase();
+      }
+
+      const is_match = adjustedA === adjustedB;
+
       // Deletion
       let del_cost_total = del_cost + dp[(q_i + 1) * BH + h_i * B + 0]; // after deletion, cm == 0
 
@@ -94,7 +115,7 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number[] 
       let skip_cost_total = skip_cost + dp[q_i * BH + (h_i + 1) * B + 0]; // after skip, cm == 0
 
       let match_cost;
-      if (q[q_i] === h[h_i]) {
+      if (is_match) {
         // Matching
         match_cost = dp[(q_i + 1) * BH + (h_i + 1) * B + 1];
       } else {
@@ -111,7 +132,7 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number[] 
       let skip_cost_cm1 = skip_cost + dp[q_i * BH + (h_i + 1) * B + 0]; // after skip, cm resets to 0
 
       let match_cost_cm1;
-      if (q[q_i] === h[h_i]) {
+      if (is_match) {
         // Matching
         match_cost_cm1 = dp[(q_i + 1) * BH + (h_i + 1) * B + 1] - streak_bias;
       } else {
@@ -187,7 +208,12 @@ export function path(q: string, h: string, padding: number, dp: number[]): [stri
 
     // Match or Substitute (only if q_i < q_len and h_i < h_len)
     if (q_i < q_len && h_i < h_len) {
-      if (q[q_i] === h[h_i]) {
+
+      const a = q[q_i];
+      const b = h[h_i];
+      const is_match = case_setting === 0 ? a === b : (case_setting === 1 ? (a.toLowerCase() === a ? a === b.toLowerCase() : a === b) : a.toLowerCase() === b.toLowerCase());
+
+      if (is_match) {
         // Matching
         const next_cm = 1;
         const match_index = (q_i + 1) * BH + (h_i + 1) * B + next_cm;
