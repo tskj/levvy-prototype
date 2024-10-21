@@ -1,11 +1,13 @@
-import { iterativeLevvy, referenceLevvy } from ".";
+import { iterativeLevvy, iterativeLevvy_fast } from ".";
 import { files, getLines, queries } from "./utils";
 
+// Function to calculate the average of an array of numbers
 const calculateAverage = (numbers: number[]): number => {
   const total = numbers.reduce((sum, val) => sum + val, 0);
   return total / numbers.length;
 };
 
+// Function to calculate the median of an array of numbers
 const calculateMedian = (numbers: number[]): number => {
   const sorted = numbers.slice().sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
@@ -16,38 +18,40 @@ const calculateMedian = (numbers: number[]): number => {
   }
 };
 
-
 const iterations = 3;
 
 // Initialize data structures to accumulate times
 const queryTimesIterative: { [query: string]: number[] } = {};
-const queryTimesReference: { [query: string]: number[] } = {};
+const queryTimesIterativeFast: { [query: string]: number[] } = {};
 const fileTimesIterative: { [file: string]: number[] } = {};
-const fileTimesReference: { [file: string]: number[] } = {};
+const fileTimesIterativeFast: { [file: string]: number[] } = {};
 
+// Iterate over each file
 for (const file of files) {
   const lines = await getLines(file);
   const longest_line = Math.max(...lines.map((l) => l.length));
 
-  // Initialize arrays for the current file if not already
+  // Initialize arrays for the current file if not already present
   if (!fileTimesIterative[file]) {
     fileTimesIterative[file] = [];
-    fileTimesReference[file] = [];
+    fileTimesIterativeFast[file] = [];
   }
 
+  // Iterate over each query
   for (const query of queries) {
-    // Initialize arrays for the current query if not already
+    // Initialize arrays for the current query if not already present
     if (!queryTimesIterative[query]) {
       queryTimesIterative[query] = [];
-      queryTimesReference[query] = [];
+      queryTimesIterativeFast[query] = [];
     }
 
-    // We'll measure the time it takes to process all lines per iteration
+    // Initialize variables to accumulate total time over iterations
     let totalIterativeTime = 0;
-    let totalReferenceTime = 0;
+    let totalIterativeFastTime = 0;
 
+    // Perform benchmarking over the specified number of iterations
     for (let i = 0; i < iterations; i++) {
-      // Benchmark iterativeLevvy over all lines
+      // Benchmark iterativeLevvy (Regular Version)
       let startTime = performance.now();
       for (const line of lines) {
         const padding = longest_line - line.length;
@@ -56,66 +60,71 @@ for (const file of files) {
       let endTime = performance.now();
       totalIterativeTime += endTime - startTime;
 
-      // Benchmark referenceLevvy over all lines
+      // Benchmark iterativeLevvy_fast (Fast Version)
       startTime = performance.now();
       for (const line of lines) {
-        const cache = new Map();
         const padding = longest_line - line.length;
-        referenceLevvy(cache, query, 0, line, 0, padding);
+        iterativeLevvy_fast(query, line, padding);
       }
       endTime = performance.now();
-      totalReferenceTime += endTime - startTime;
+      totalIterativeFastTime += endTime - startTime;
     }
 
-    // Calculate average time per iteration
+    // Calculate average time per iteration for both versions
     const avgIterativeTime = totalIterativeTime / iterations;
-    const avgReferenceTime = totalReferenceTime / iterations;
+    const avgIterativeFastTime = totalIterativeFastTime / iterations;
 
-    // Store times for calculating averages and medians later
+    // Store times for queries
     queryTimesIterative[query].push(avgIterativeTime);
-    queryTimesReference[query].push(avgReferenceTime);
+    queryTimesIterativeFast[query].push(avgIterativeFastTime);
 
+    // Store times for files
     fileTimesIterative[file].push(avgIterativeTime);
-    fileTimesReference[file].push(avgReferenceTime);
+    fileTimesIterativeFast[file].push(avgIterativeFastTime);
   }
 }
 
-// Calculate and print average and median times per query
-console.log("\n=== Benchmark Results Per Query ===");
-for (const query of queries) {
-  const iterativeTimes = queryTimesIterative[query];
-  const referenceTimes = queryTimesReference[query];
-
-  const avgIterative = calculateAverage(iterativeTimes);
-  const medianIterative = calculateMedian(iterativeTimes);
-
-  const avgReference = calculateAverage(referenceTimes);
-  const medianReference = calculateMedian(referenceTimes);
-
-  console.log(`Query: "${query}"`);
-  console.log(`IterativeLevvy - Average Time: ${avgIterative.toFixed(6)} ms`);
-  console.log(`IterativeLevvy - Median Time: ${medianIterative.toFixed(6)} ms`);
-  console.log(`ReferenceLevvy - Average Time: ${avgReference.toFixed(6)} ms`);
-  console.log(`ReferenceLevvy - Median Time: ${medianReference.toFixed(6)} ms`);
-  console.log("----------------------------------------");
-}
+// Function to calculate speedup percentage
+const calculateSpeedup = (regularTime: number, fastTime: number): number => {
+  if (regularTime === 0) return 0;
+  return ((regularTime - fastTime) / regularTime) * 100;
+};
 
 // Calculate and print average and median times per file
-console.log("\n=== Benchmark Results Per File ===");
+console.log("\n=== Benchmark Results for IterativeLevvy (Regular) ===");
 for (const file of files) {
   const iterativeTimes = fileTimesIterative[file];
-  const referenceTimes = fileTimesReference[file];
 
   const avgIterative = calculateAverage(iterativeTimes);
   const medianIterative = calculateMedian(iterativeTimes);
-
-  const avgReference = calculateAverage(referenceTimes);
-  const medianReference = calculateMedian(referenceTimes);
 
   console.log(`File: "${file}"`);
   console.log(`IterativeLevvy - Average Time: ${avgIterative.toFixed(6)} ms`);
   console.log(`IterativeLevvy - Median Time: ${medianIterative.toFixed(6)} ms`);
-  console.log(`ReferenceLevvy - Average Time: ${avgReference.toFixed(6)} ms`);
-  console.log(`ReferenceLevvy - Median Time: ${medianReference.toFixed(6)} ms`);
   console.log("----------------------------------------");
 }
+
+console.log("\n=== Benchmark Results for IterativeLevvy_fast ===");
+for (const file of files) {
+  const iterativeFastTimes = fileTimesIterativeFast[file];
+  const iterativeTimes = fileTimesIterative[file];
+
+  const avgIterativeFast = calculateAverage(iterativeFastTimes);
+  const medianIterativeFast = calculateMedian(iterativeFastTimes);
+
+  // Calculate avgIterative and medianIterative in this scope
+  const avgIterative = calculateAverage(iterativeTimes);
+  const medianIterative = calculateMedian(iterativeTimes);
+
+  // Calculate speedup
+  const avgSpeedup = calculateSpeedup(avgIterative, avgIterativeFast);
+  const medianSpeedup = calculateSpeedup(medianIterative, medianIterativeFast);
+
+  console.log(`File: "${file}"`);
+  console.log(`IterativeLevvy_fast - Average Time: ${avgIterativeFast.toFixed(6)} ms`);
+  console.log(`IterativeLevvy_fast - Median Time: ${medianIterativeFast.toFixed(6)} ms`);
+  console.log(`Speedup - Average: ${avgSpeedup.toFixed(2)}% faster`);
+  console.log(`Speedup - Median: ${medianSpeedup.toFixed(2)}% faster`);
+  console.log("----------------------------------------");
+}
+
