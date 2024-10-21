@@ -12,6 +12,7 @@ console.time('my timer');
 
 const del_cost = 1;
 const skip_cost = 1;
+const sub_cost = 1;
 const streak_bias = 1;
 
 export const referenceLevvy = (c: Map<string, number>, q: string, q_i: number, h: string, h_i: number, padding: number, consecutive_match = false): number => {
@@ -49,8 +50,9 @@ export const referenceLevvy = (c: Map<string, number>, q: string, q_i: number, h
 
   let del = referenceLevvy(c, q, q_i + 1, h, h_i, padding, consecutive_match) + del_cost;
   let skip = referenceLevvy(c, q, q_i, h, h_i + 1, padding) + skip_cost;
+  let sub = referenceLevvy(c, q, q_i + 1, h, h_i + 1, padding) + sub_cost;
 
-  const result = Math.min(del, skip);
+  const result = Math.min(del, skip, sub);
   c.set(hash, result);
   return result;
 };
@@ -93,11 +95,14 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number =>
       // Skipping
       let skip_cost_total = skip_cost + dp[q_i][h_i + 1][0]; // after skip, cm == 0
 
-      let match_cost = worst_possible_distance;
+      let match_cost;
       if (q[q_i] === h[h_i]) {
         // Matching
         // From dp[q_i + 1][h_i + 1][1], since after matching, cm == 1
         match_cost = dp[q_i + 1][h_i + 1][1];
+      } else {
+        // Subbing
+        match_cost = sub_cost + dp[q_i + 1][h_i + 1][0]; // after sub, cm == 0
       }
 
       dp[q_i][h_i][0] = Math.min(del_cost_total, skip_cost_total, match_cost);
@@ -108,11 +113,14 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number =>
       // Skipping
       let skip_cost_cm1 = skip_cost + dp[q_i][h_i + 1][0]; // after skip, cm resets to 0
 
-      let match_cost_cm1 = worst_possible_distance;
+      let match_cost_cm1;
       if (q[q_i] === h[h_i]) {
         // Matching
         // From dp[q_i + 1][h_i + 1][1]
         match_cost_cm1 = dp[q_i + 1][h_i + 1][1] - streak_bias;
+      } else {
+        // Subbing
+        match_cost_cm1 = sub_cost + dp[q_i + 1][h_i + 1][0];
       }
 
       dp[q_i][h_i][1] = Math.min(del_cost_cm1, skip_cost_cm1, match_cost_cm1);
