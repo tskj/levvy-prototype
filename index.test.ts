@@ -5,7 +5,7 @@ test('equal reference implementation', async () => {
   for (const file of files) {
     const lines = await getLines(file);
     const longest_line = Math.max(...lines.map(l => l.length));
-    const dp_fast_scratch = new Array((longest_line + 1) * 2);
+    const dp_fast_scratch = new Array((longest_line + 1) * 2 * 2);
 
     for (const query of queries) {
       for (const line of lines) {

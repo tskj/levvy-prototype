@@ -62,7 +62,7 @@ for (const file of files) {
 
       // Benchmark iterativeLevvy_fast (Fast Version)
       startTime = performance.now();
-      const scratch_space = new Array((longest_line + 1) * 2);
+      const scratch_space = new Array((longest_line + 1) * 2 * 2);
       for (const line of lines) {
         const padding = longest_line - line.length;
         iterativeLevvy_fast(query, line, padding, scratch_space);
