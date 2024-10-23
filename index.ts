@@ -147,17 +147,13 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number[] 
   return dp;
 };
 
-export const iterativeLevvy_fast = (q: string, h: string, padding: number): number[] => {
+export const iterativeLevvy_fast = (q: string, h: string, padding: number, dp_current: number[], dp_previous: number[]): number => {
   const q_len = q.length;
   const h_len = h.length;
 
-  const H = h_len + 1;
+  // const H = h_len + 1;
   const B = 2; // consecutive_match flag can be 0 or 1
-  const HB = H * B;
-
-  // Initialize dp arrays for two rows
-  let dp_current = new Array(HB).fill(Infinity);
-  let dp_previous = new Array(HB).fill(Infinity);
+  // const HB = H * B;
 
   // Base case initialization for q_i = q_len
   for (let h_i = 0; h_i <= h_len; h_i++) {
