@@ -53,9 +53,10 @@ for (const file of files) {
     for (let i = 0; i < iterations; i++) {
       // Benchmark iterativeLevvy (Regular Version)
       let startTime = performance.now();
+      const scratch = new Array((longest_line + 1) * (query.length + 1) * 2);
       for (const line of lines) {
         const padding = longest_line - line.length;
-        iterativeLevvy(query, line, padding);
+        iterativeLevvy(query, line, padding, scratch);
       }
       let endTime = performance.now();
       totalIterativeTime += endTime - startTime;

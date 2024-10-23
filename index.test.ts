@@ -9,8 +9,9 @@ test('equal reference implementation', async () => {
     const prev = new Array((longest_line + 1) * 2);
 
     for (const query of queries) {
+      const scratch = new Array((longest_line + 1) * (query.length + 1) * 2);
       for (const line of lines) {
-        const distances_iterative_levvy = iterativeLevvy(query, line, longest_line - line.length);
+        const distances_iterative_levvy = iterativeLevvy(query, line, longest_line - line.length, scratch);
         const distances_iterative_levvy_fast = iterativeLevvy_fast(query, line, longest_line - line.length, curr, prev);
 
         const cache = new Map();

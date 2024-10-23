@@ -63,19 +63,17 @@ export const referenceLevvy = (c: Map<string, number>, q: string, q_i: number, h
   return result;
 };
 
-export const iterativeLevvy = (q: string, h: string, padding: number): number[] => {
+/*
+ * precondition: dp needs to be at least (q.length + 1) * (h.length + 1) * 2 long
+ */
+export const iterativeLevvy = (q: string, h: string, padding: number, dp: number[]): number[] => {
   const q_len = q.length;
   const h_len = h.length;
 
-  const Q = q_len + 1;
+  // const Q = q_len + 1;
   const H = h_len + 1;
   const B = 2;
   const BH = B * H;
-
-  // Initialize dp table
-  // dp[q_i][h_i][cm]
-  const dp = Array(Q * H * B)
-    .fill(Infinity);
 
   // Base cases
   for (let q_i = 0; q_i <= q_len; q_i++) {
@@ -147,6 +145,9 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number[] 
   return dp;
 };
 
+/*
+ * precondition: dp_current and dp_previous need to be at least (h.length + 1) * 2 long
+ */
 export const iterativeLevvy_fast = (q: string, h: string, padding: number, dp_current: number[], dp_previous: number[]): number => {
   const q_len = q.length;
   const h_len = h.length;
@@ -376,7 +377,9 @@ export function path(q: string, h: string, padding: number, dp: number[]): [stri
 
 const distances_iterative_levvy =
   content.map(s => {
-    return [s, iterativeLevvy(query, s, longest_line - s.length)[0], path(query, s, longest_line - s.length, iterativeLevvy(query, s, longest_line - s.length))]
+    const dp = new Array((s.length + 1) + (query.length + 1) * 2);
+    iterativeLevvy(query, s, longest_line - s.length, dp);
+    return [s, dp[0], path(query, s, longest_line - s.length, dp)]
   });
 
 console.timeEnd('my timer');
