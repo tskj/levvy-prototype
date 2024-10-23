@@ -155,23 +155,24 @@ export const iterativeLevvy_fast = (q: string, h: string, padding: number): numb
   const B = 2; // consecutive_match flag can be 0 or 1
   const HB = H * B;
 
-  // Initialize dp arrays for two rows
-  let dp_current = new Array(HB).fill(Infinity);
-  let dp_previous = new Array(HB).fill(Infinity);
+  let dp_prev_offset = 0;
+  let dp_curr_offset = HB;
+
+  let dp = new Array(HB);
 
   // Base case initialization for q_i = q_len
   for (let h_i = 0; h_i <= h_len; h_i++) {
     const dist = (h_len - h_i + padding) * skip_cost;
-    dp_previous[h_i * B + 0] = dist;
-    dp_previous[h_i * B + 1] = dist;
+    dp[dp_prev_offset + h_i * B + 0] = dist;
+    dp[dp_prev_offset + h_i * B + 1] = dist;
   }
 
   // Main DP loop
   for (let q_i = q_len - 1; q_i >= 0; q_i--) {
     // Initialize dp_current for h_i = h_len
     const dist = (q_len - q_i) * del_cost + padding * skip_cost;
-    dp_current[h_len * B + 0] = dist;
-    dp_current[h_len * B + 1] = dist;
+    dp[dp_curr_offset + h_len * B + 0] = dist;
+    dp[dp_curr_offset + h_len * B + 1] = dist;
 
     for (let h_i = h_len - 1; h_i >= 0; h_i--) {
       const a = q[q_i];
@@ -194,46 +195,48 @@ export const iterativeLevvy_fast = (q: string, h: string, padding: number): numb
       const index_next = (h_i + 1) * B;
 
       // Deletion (cm == 0)
-      let del_cost_total = del_cost + dp_previous[index_current + 0]; // cm remains the same after deletion
+      let del_cost_total = del_cost + dp[dp_prev_offset + index_current + 0]; // cm remains the same after deletion
 
       // Skipping (cm == 0)
-      let skip_cost_total = skip_cost + dp_current[index_next + 0]; // cm resets to 0 after skipping
+      let skip_cost_total = skip_cost + dp[dp_curr_offset + index_next + 0]; // cm resets to 0 after skipping
 
       let match_cost;
       if (is_match) {
         // Matching (cm == 1)
-        match_cost = dp_previous[index_next + 1];
+        match_cost = dp[dp_prev_offset + index_next + 1];
       } else {
         // Substitution (cm == 0)
-        match_cost = sub_cost + dp_previous[index_next + 0];
+        match_cost = sub_cost + dp[dp_prev_offset + index_next + 0];
       }
 
-      dp_current[index_current + 0] = Math.min(del_cost_total, skip_cost_total, match_cost);
+      dp[dp_curr_offset + index_current + 0] = Math.min(del_cost_total, skip_cost_total, match_cost);
 
       // Deletion (cm == 1)
-      let del_cost_cm1 = del_cost + dp_previous[index_current + 1]; // cm remains 1 after deletion
+      let del_cost_cm1 = del_cost + dp[dp_prev_offset + index_current + 1]; // cm remains 1 after deletion
 
       // Skipping (cm == 1 -> cm resets to 0)
-      let skip_cost_cm1 = skip_cost + dp_current[index_next + 0];
+      let skip_cost_cm1 = skip_cost + dp[dp_curr_offset + index_next + 0];
 
       let match_cost_cm1;
       if (is_match) {
         // Matching with streak bias
-        match_cost_cm1 = dp_previous[index_next + 1] - streak_bias;
+        match_cost_cm1 = dp[dp_prev_offset + index_next + 1] - streak_bias;
       } else {
         // Substitution resets cm to 0
-        match_cost_cm1 = sub_cost + dp_previous[index_next + 0];
+        match_cost_cm1 = sub_cost + dp[dp_prev_offset + index_next + 0];
       }
 
-      dp_current[index_current + 1] = Math.min(del_cost_cm1, skip_cost_cm1, match_cost_cm1);
+      dp[dp_curr_offset + index_current + 1] = Math.min(del_cost_cm1, skip_cost_cm1, match_cost_cm1);
     }
 
-    // Swap dp_current and dp_previous for next iteration
-    [dp_current, dp_previous] = [dp_previous, dp_current];
+    // Swap dp_current and dp_previous offsets for next iteration
+    const tmp = dp_curr_offset;
+    dp_curr_offset = dp_prev_offset;
+    dp_prev_offset = tmp;
   }
 
   // After the loop, dp_previous contains the final result for q_i = 0
-  return dp_previous[0];
+  return dp[dp_prev_offset + 0];
 };
 
 export function path(q: string, h: string, padding: number, dp: number[]): [string[], number] {
