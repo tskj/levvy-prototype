@@ -22,6 +22,10 @@ test('equal reference implementation', async () => {
         expect(distances_iterative_levvy[0]).toBe(distance_reference_levvy);
         expect(distances_iterative_levvy_fast).toBe(distance_reference_levvy);
         expect(reconstructed_path[1]).toBe(distance_reference_levvy);
+
+        // these are subject to change wrt costs and biases
+        expect(reconstructed_path[0].length).toBeGreaterThanOrEqual(query.length);
+        expect(reconstructed_path[0].length).toBeLessThanOrEqual(line.length + query.length);
       }
     }
   }

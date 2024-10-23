@@ -91,17 +91,17 @@ export const iterativeLevvy = (q: string, h: string, padding: number, dp: number
   for (let q_i = q_len - 1; q_i >= 0; q_i--) {
     for (let h_i = h_len - 1; h_i >= 0; h_i--) {
 
-      const a = q[q_i];
-      const b = h[h_i];
+      const a = q.charCodeAt(q_i);
+      const b = h.charCodeAt(h_i);
 
       let adjustedA = a;
       let adjustedB = b;
 
       if (case_setting === 2) {
-        adjustedA = a.toLowerCase();
-        adjustedB = b.toLowerCase();
-      } else if (case_setting === 1 && a === a.toLowerCase()) {
-        adjustedB = b.toLowerCase();
+        if (65 <= a && a <= 90) adjustedA = a + 32;
+        if (65 <= b && b <= 90) adjustedB = b + 32;
+      } else if (case_setting === 1 && 97 <= a && a <= 122) {
+        if (65 <= b && b <= 90) adjustedB = b + 32;
       }
 
       const is_match = adjustedA === adjustedB;
@@ -171,17 +171,17 @@ export const iterativeLevvy_fast = (q: string, h: string, padding: number, dp_cu
     dp_current[h_len * B + 1] = dist;
 
     for (let h_i = h_len - 1; h_i >= 0; h_i--) {
-      const a = q[q_i];
-      const b = h[h_i];
+      const a = q.charCodeAt(q_i);
+      const b = h.charCodeAt(h_i);
 
       let adjustedA = a;
       let adjustedB = b;
 
       if (case_setting === 2) {
-        adjustedA = a.toLowerCase();
-        adjustedB = b.toLowerCase();
-      } else if (case_setting === 1 && a === a.toLowerCase()) {
-        adjustedB = b.toLowerCase();
+        if (65 <= a && a <= 90) adjustedA = a + 32;
+        if (65 <= b && b <= 90) adjustedB = b + 32;
+      } else if (case_setting === 1 && 97 <= a && a <= 122) {
+        if (65 <= b && b <= 90) adjustedB = b + 32;
       }
 
       const is_match = adjustedA === adjustedB;
@@ -239,7 +239,7 @@ export function path(q: string, h: string, padding: number, dp: number[]): [stri
   const q_len = q.length;
   const h_len = h.length;
   const adjusted_h_len = h_len + padding;
-  const Q = q_len + 1;
+  // const Q = q_len + 1;
   const H = h_len + 1; // DP table only goes up to h_len
   const B = 2;
   const BH = B * H;
