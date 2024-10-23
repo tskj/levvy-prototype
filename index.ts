@@ -147,7 +147,10 @@ export const iterativeLevvy = (q: string, h: string, padding: number): number[] 
   return dp;
 };
 
-export const iterativeLevvy_fast = (q: string, h: string, padding: number): number[] => {
+/**
+ * precondition: db needs to be at least (h.length + 1) * 2 long
+ */
+export const iterativeLevvy_fast = (q: string, h: string, padding: number, dp: number[]): number => {
   const q_len = q.length;
   const h_len = h.length;
 
@@ -157,8 +160,6 @@ export const iterativeLevvy_fast = (q: string, h: string, padding: number): numb
 
   let dp_prev_offset = 0;
   let dp_curr_offset = HB;
-
-  let dp = new Array(HB);
 
   // Base case initialization for q_i = q_len
   for (let h_i = 0; h_i <= h_len; h_i++) {
