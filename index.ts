@@ -242,7 +242,7 @@ export function path(q: string, h: string, padding: number, dp: number[]): [stri
   const q_len = q.length;
   const h_len = h.length;
   const adjusted_h_len = h_len + padding;
-  const Q = q_len + 1;
+  // const Q = q_len + 1;
   const H = h_len + 1; // DP table only goes up to h_len
   const B = 2;
   const BH = B * H;
