@@ -40,10 +40,24 @@ export const referenceLevvy = (c: Map<string, number>, q: string, q_i: number, h
     return result;
   }
 
-  const a = q[q_i];
-  const b = h[h_i];
-  const is_match = case_setting === 0 ? a === b : (case_setting === 1 ? (a.toLowerCase() === a ? a === b.toLowerCase() : a === b) : a.toLowerCase() === b.toLowerCase());
+  // const a = q[q_i];
+  // const b = h[h_i];
+  // const is_match = case_setting === 0 ? a === b : (case_setting === 1 ? (a.toLowerCase() === a ? a === b.toLowerCase() : a === b) : a.toLowerCase() === b.toLowerCase());
 
+  const a = q.charCodeAt(q_i);
+  const b = h.charCodeAt(h_i);
+
+  let adjustedA = a;
+  let adjustedB = b;
+
+  if (case_setting === 2) {
+    if (65 <= a && a <= 90) adjustedA = a + 32;
+    if (65 <= b && b <= 90) adjustedB = b + 32;
+  } else if (case_setting === 1 && 97 <= a && a <= 122) {
+    if (65 <= b && b <= 90) adjustedB = b + 32;
+  }
+
+  const is_match = adjustedA === adjustedB;
   if (is_match) {
     let skip = referenceLevvy(c, q, q_i, h, h_i + 1, padding) + skip_cost;
     let del = referenceLevvy(c, q, q_i + 1, h, h_i, padding, consecutive_match) + del_cost;
@@ -156,9 +170,11 @@ export const iterativeLevvy_fast = (q: string, h: string, padding: number, dp_cu
   const B = 2; // consecutive_match flag can be 0 or 1
   // const HB = H * B;
 
+  const padding_cost = padding * skip_cost;
+
   // Base case initialization for q_i = q_len
   for (let h_i = 0; h_i <= h_len; h_i++) {
-    const dist = (h_len - h_i + padding) * skip_cost;
+    const dist = (h_len - h_i) * skip_cost + padding_cost;
     dp_previous[h_i * B + 0] = dist;
     dp_previous[h_i * B + 1] = dist;
   }
@@ -166,7 +182,7 @@ export const iterativeLevvy_fast = (q: string, h: string, padding: number, dp_cu
   // Main DP loop
   for (let q_i = q_len - 1; q_i >= 0; q_i--) {
     // Initialize dp_current for h_i = h_len
-    const dist = (q_len - q_i) * del_cost + padding * skip_cost;
+    const dist = (q_len - q_i) * del_cost + padding_cost;
     dp_current[h_len * B + 0] = dist;
     dp_current[h_len * B + 1] = dist;
 
@@ -191,10 +207,10 @@ export const iterativeLevvy_fast = (q: string, h: string, padding: number, dp_cu
       const index_next = (h_i + 1) * B;
 
       // Deletion (cm == 0)
-      let del_cost_total = del_cost + dp_previous[index_current + 0]; // cm remains the same after deletion
+      const del_cost_total = del_cost + dp_previous[index_current + 0]; // cm remains the same after deletion
 
       // Skipping (cm == 0)
-      let skip_cost_total = skip_cost + dp_current[index_next + 0]; // cm resets to 0 after skipping
+      const skip_cost_total = skip_cost + dp_current[index_next + 0]; // cm resets to 0 after skipping
 
       let match_cost;
       if (is_match) {
@@ -208,10 +224,10 @@ export const iterativeLevvy_fast = (q: string, h: string, padding: number, dp_cu
       dp_current[index_current + 0] = Math.min(del_cost_total, skip_cost_total, match_cost);
 
       // Deletion (cm == 1)
-      let del_cost_cm1 = del_cost + dp_previous[index_current + 1]; // cm remains 1 after deletion
+      const del_cost_cm1 = del_cost + dp_previous[index_current + 1]; // cm remains 1 after deletion
 
       // Skipping (cm == 1 -> cm resets to 0)
-      let skip_cost_cm1 = skip_cost + dp_current[index_next + 0];
+      const skip_cost_cm1 = skip_cost + dp_current[index_next + 0];
 
       let match_cost_cm1;
       if (is_match) {
@@ -229,7 +245,6 @@ export const iterativeLevvy_fast = (q: string, h: string, padding: number, dp_cu
     [dp_current, dp_previous] = [dp_previous, dp_current];
   }
 
-  // After the loop, dp_previous contains the final result for q_i = 0
   return dp_previous[0];
 };
 

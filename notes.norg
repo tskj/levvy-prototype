@@ -1,0 +1,9 @@
+precondition:
+parameter configuration is a non-negative integer
+
+- ( ) property: when q == h and padding: 0, distance should be 0
+- ( ) property: for all parameter configurations and padding == 0, distance should be non-negative
+- ( ) property: levvy(.., 0, ..) == levvy(.., padding, ..) - padding * length_bias, forall paddings
+- ( ) property: setting length_bias=0 should be the same as passing padding: 0 and any length_bias
+- ( ) property: length_bias=1 and padding=-h.length should give a normalized length where
+                if h >= q and q is a substring of h, then h should rank the same as levvy(q, q)

@@ -31,6 +31,7 @@ export const files = [
   "data/test.txt"
   , "data/test2.txt"
   , "data/test3.txt"
+  , "data/termtest.txt"
 ]
 
 export const getLines = async (file: string): Promise<string[]> => {
