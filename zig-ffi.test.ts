@@ -92,6 +92,61 @@ test.skipIf(!fuzzy_search_simd_scan)('zig fuzzy_search_simd_scan agrees with typ
   await checkAgainstTs(fuzzy_search_simd_scan!, "fuzzy_search_simd_scan");
 });
 
+// the single-line scorer used by the telescope sorter: -1 when the query
+// isn't a smart-case subsequence, otherwise the distance with the line
+// padded to pad_to columns
+const levvy_score = (() => {
+  if (!haveLib) return null;
+  try {
+    const lib = dlopen(libPath, {
+      levvy_score: { args: [FFIType.ptr, FFIType.ptr, FFIType.u32], returns: FFIType.i32 },
+    });
+    return lib.symbols.levvy_score;
+  } catch {
+    return null;
+  }
+})();
+
+const isSmartCaseSubsequence = (q: string, h: string): boolean => {
+  let qi = 0;
+  for (let hi = 0; hi < h.length && qi < q.length; hi++) {
+    let a = q.charCodeAt(qi);
+    let b = h.charCodeAt(hi);
+    if (97 <= a && a <= 122 && 65 <= b && b <= 90) b += 32; // smart case
+    if (a === b) qi++;
+  }
+  return qi === q.length;
+};
+
+test.skipIf(!levvy_score)('zig levvy_score agrees with typescript implementation', async () => {
+  const PAD_TO = 1024;
+  for (const file of files) {
+    const lines = (await getLines(file)).filter(isAscii).filter(l => l.length <= 2048);
+    const longest = 1024;
+    const curr = new Array((longest + 1) * 2);
+    const prev = new Array((longest + 1) * 2);
+
+    for (const query of queries.filter(isAscii)) {
+      const qbuf = Buffer.from(query + "\0", "latin1");
+      for (const line of lines) {
+        const lbuf = Buffer.from(line + "\0", "latin1");
+        const got = levvy_score!(ptr(qbuf), ptr(lbuf), PAD_TO);
+        try {
+          if (!isSmartCaseSubsequence(query, line)) {
+            expect(got).toBe(-1);
+          } else {
+            const padding = Math.max(PAD_TO - line.length, 0);
+            expect(got).toBe(iterativeLevvy_fast(query, line, padding, curr, prev));
+          }
+        } catch (e) {
+          console.error(`levvy_score: for query (${query})\nand line (${line})\nin file ${file}`);
+          throw e;
+        }
+      }
+    }
+  }
+});
+
 // the persistent handle api (cached preprocessing + optional worker pool)
 const handleApi = (() => {
   if (!haveLib) return null;
