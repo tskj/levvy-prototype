@@ -91,3 +91,63 @@ const fuzzy_search_simd_scan = haveLib ? openSymbol("fuzzy_search_simd_scan") : 
 test.skipIf(!fuzzy_search_simd_scan)('zig fuzzy_search_simd_scan agrees with typescript implementation', async () => {
   await checkAgainstTs(fuzzy_search_simd_scan!, "fuzzy_search_simd_scan");
 });
+
+// the persistent handle api (cached preprocessing + optional worker pool)
+const handleApi = (() => {
+  if (!haveLib) return null;
+  try {
+    const lib = dlopen(libPath, {
+      levvy_create: { args: [FFIType.ptr, FFIType.u32], returns: FFIType.ptr },
+      levvy_search: { args: [FFIType.ptr, FFIType.ptr, FFIType.ptr, FFIType.u32], returns: FFIType.i32 },
+      levvy_destroy: { args: [FFIType.ptr], returns: FFIType.void },
+    });
+    return lib.symbols;
+  } catch {
+    return null;
+  }
+})();
+
+test.skipIf(!handleApi)('zig levvy handle api agrees with typescript implementation (1 thread and pool)', async () => {
+  for (const file of files) {
+    const lines = (await getLines(file)).filter(isAscii);
+    if (lines.length === 0) continue;
+    const longest_line = Math.max(...lines.map(l => l.length));
+    const curr = new Array((longest_line + 1) * 2);
+    const prev = new Array((longest_line + 1) * 2);
+
+    const bufs = lines.map(l => Buffer.from(l + "\0", "latin1"));
+    const ptrs = new BigUint64Array(lines.length);
+    for (let i = 0; i < bufs.length; i++) ptrs[i] = BigInt(ptr(bufs[i]));
+
+    const handle = handleApi!.levvy_create(ptr(ptrs), lines.length);
+    expect(handle).not.toBe(0);
+
+    try {
+      for (const query of queries.filter(isAscii)) {
+        const qbuf = Buffer.from(query + "\0", "latin1");
+        const out_single = new Uint16Array(lines.length);
+        const out_pool = new Uint16Array(lines.length);
+
+        const min_single = handleApi!.levvy_search(handle, ptr(qbuf), ptr(out_single), 1);
+        const min_pool = handleApi!.levvy_search(handle, ptr(qbuf), ptr(out_pool), 0);
+
+        let expected_min = Infinity;
+        for (let i = 0; i < lines.length; i++) {
+          const expected = iterativeLevvy_fast(query, lines[i], longest_line - lines[i].length, curr, prev);
+          expected_min = Math.min(expected_min, expected);
+          try {
+            expect(out_single[i]).toBe(expected);
+            expect(out_pool[i]).toBe(expected);
+          } catch (e) {
+            console.error(`handle api: for query (${query})\nand line (${lines[i]})\nin file ${file}`);
+            throw e;
+          }
+        }
+        expect(min_single).toBe(expected_min);
+        expect(min_pool).toBe(expected_min);
+      }
+    } finally {
+      handleApi!.levvy_destroy(handle);
+    }
+  }
+});
