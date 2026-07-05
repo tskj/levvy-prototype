@@ -107,17 +107,6 @@ const levvy_score = (() => {
   }
 })();
 
-const isSmartCaseSubsequence = (q: string, h: string): boolean => {
-  let qi = 0;
-  for (let hi = 0; hi < h.length && qi < q.length; hi++) {
-    let a = q.charCodeAt(qi);
-    let b = h.charCodeAt(hi);
-    if (97 <= a && a <= 122 && 65 <= b && b <= 90) b += 32; // smart case
-    if (a === b) qi++;
-  }
-  return qi === q.length;
-};
-
 test.skipIf(!levvy_score)('zig levvy_score agrees with typescript implementation', async () => {
   const PAD_TO = 1024;
   for (const file of files) {
@@ -131,13 +120,10 @@ test.skipIf(!levvy_score)('zig levvy_score agrees with typescript implementation
       for (const line of lines) {
         const lbuf = Buffer.from(line + "\0", "latin1");
         const got = levvy_score!(ptr(qbuf), ptr(lbuf), PAD_TO);
+        // no gate: every line, subsequence or not, gets the batch distance
+        const padding = Math.max(PAD_TO - line.length, 0);
         try {
-          if (!isSmartCaseSubsequence(query, line)) {
-            expect(got).toBe(-1);
-          } else {
-            const padding = Math.max(PAD_TO - line.length, 0);
-            expect(got).toBe(iterativeLevvy_fast(query, line, padding, curr, prev));
-          }
+          expect(got).toBe(iterativeLevvy_fast(query, line, padding, curr, prev));
         } catch (e) {
           console.error(`levvy_score: for query (${query})\nand line (${line})\nin file ${file}`);
           throw e;
@@ -184,7 +170,9 @@ test.skipIf(!levvy_positions)('zig levvy_positions agrees with typescript path r
     for (const query of queries.filter(isAscii).filter(q => q.length > 0)) {
       const qbuf = Buffer.from(query + "\0", "latin1");
       for (const line of lines) {
-        if (!isSmartCaseSubsequence(query, line)) continue;
+        // no gate: positions are computed for every line (subsequence or
+        // not); an unrelated line simply yields whatever the optimal path
+        // matched, possibly nothing
         const lbuf = Buffer.from(line + "\0", "latin1");
         const out = new Uint16Array(query.length);
         const n = levvy_positions!(ptr(qbuf), ptr(lbuf), ptr(out), query.length);
