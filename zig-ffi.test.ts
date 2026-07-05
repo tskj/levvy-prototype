@@ -11,7 +11,7 @@
 import { test, expect } from "bun:test";
 import { existsSync } from "fs";
 import { dlopen, FFIType, ptr } from "bun:ffi";
-import { iterativeLevvy_fast } from "./levvy";
+import { iterativeLevvy, iterativeLevvy_fast, path } from "./levvy";
 import { files, getLines, queries } from "./utils";
 
 const libPath = new URL("../tarshtein-distance/zig-out/lib/liblevvy.so", import.meta.url).pathname;
@@ -140,6 +140,60 @@ test.skipIf(!levvy_score)('zig levvy_score agrees with typescript implementation
           }
         } catch (e) {
           console.error(`levvy_score: for query (${query})\nand line (${line})\nin file ${file}`);
+          throw e;
+        }
+      }
+    }
+  }
+});
+
+// match-position reconstruction (highlighting): compare against positions
+// extracted from the typescript path() walk
+const levvy_positions = (() => {
+  if (!haveLib) return null;
+  try {
+    const lib = dlopen(libPath, {
+      levvy_positions: { args: [FFIType.ptr, FFIType.ptr, FFIType.ptr, FFIType.u32], returns: FFIType.i32 },
+    });
+    return lib.symbols.levvy_positions;
+  } catch {
+    return null;
+  }
+})();
+
+const tsMatchPositions = (query: string, line: string): number[] => {
+  const dp = new Array((query.length + 1) * (line.length + 1) * 2);
+  iterativeLevvy(query, line, 0, dp);
+  const [ops] = path(query, line, 0, dp);
+  const positions: number[] = [];
+  let h_i = 0;
+  for (const op of ops) {
+    if (op.startsWith("match")) {
+      positions.push(h_i);
+      h_i++;
+    } else if (op.startsWith("substitute") || op.startsWith("skip")) {
+      h_i++;
+    } // delete consumes only a query char
+  }
+  return positions;
+};
+
+test.skipIf(!levvy_positions)('zig levvy_positions agrees with typescript path reconstruction', async () => {
+  for (const file of files) {
+    const lines = (await getLines(file)).filter(isAscii).filter(l => l.length > 0 && l.length <= 512);
+    for (const query of queries.filter(isAscii).filter(q => q.length > 0)) {
+      const qbuf = Buffer.from(query + "\0", "latin1");
+      for (const line of lines) {
+        if (!isSmartCaseSubsequence(query, line)) continue;
+        const lbuf = Buffer.from(line + "\0", "latin1");
+        const out = new Uint16Array(query.length);
+        const n = levvy_positions!(ptr(qbuf), ptr(lbuf), ptr(out), query.length);
+        const expected = tsMatchPositions(query, line);
+        try {
+          expect(n).toBe(Math.min(expected.length, query.length));
+          expect(Array.from(out.slice(0, n))).toEqual(expected.slice(0, n));
+        } catch (e) {
+          console.error(`levvy_positions: for query (${query})\nand line (${line})\nin file ${file}`);
           throw e;
         }
       }
