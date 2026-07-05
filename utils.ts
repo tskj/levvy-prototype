@@ -1,6 +1,3 @@
-import { query } from ".";
-
-
 export const queries = [
   ""
   , " "
@@ -24,7 +21,7 @@ export const queries = [
   , ":refactoringinginging"
   , ";;"
   , "æøå"
-  , query
+  , "awaitbun"
 ];
 
 export const files = [

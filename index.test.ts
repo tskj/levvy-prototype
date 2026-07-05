@@ -1,4 +1,4 @@
-import { iterativeLevvy, iterativeLevvy_fast, path, referenceLevvy } from ".";
+import { iterativeLevvy, iterativeLevvy_fast, path, referenceLevvy } from "./levvy";
 import { files, getLines, queries } from "./utils";
 
 test('equal reference implementation', async () => {
@@ -36,4 +36,3 @@ test('equal reference implementation', async () => {
     }
   }
 });
-

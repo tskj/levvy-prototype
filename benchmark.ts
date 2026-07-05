@@ -1,4 +1,4 @@
-import { iterativeLevvy, iterativeLevvy_fast } from ".";
+import { iterativeLevvy, iterativeLevvy_fast } from "./levvy";
 import { files, getLines, queries } from "./utils";
 
 // Function to calculate the average of an array of numbers

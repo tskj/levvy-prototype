@@ -1,10 +1,24 @@
 precondition:
 parameter configuration is a non-negative integer
 
-- ( ) property: when q == h and padding: 0, distance should be 0
-- ( ) property: for all parameter configurations and padding >= 0, distance should be non-negative
-- ( ) property: levvy(.., 0, ..) == levvy(.., padding, ..) - padding * length_bias, forall paddings
-- ( ) property: setting length_bias=0 should be the same as passing padding: 0 and any length_bias
-- ( ) property: length_bias=1 and padding=-h.length should give a normalized length where
+all verified by property.test.ts against the parameterized implementations in
+levvy.ts -- length_bias is the new parameter: cost per unit of padding,
+defaulting to skip_cost (2) which is the historical `padding * skip_cost`
+behavior
+
+- (x) property: when q == h and padding: 0, distance should be 0
+- (x) property: for all parameter configurations and padding >= 0, distance should be non-negative
+- (x) property: levvy(.., 0, ..) == levvy(.., padding, ..) - padding * length_bias, forall paddings
+- (x) property: setting length_bias=0 should be the same as passing padding: 0 and any length_bias
+- (x) property: length_bias=1 and padding=-h.length should give a normalized length where
                 if h >= q and q is a substring of h, then h should rank the same as levvy(q, q)
                   if length_bias == skip_bias, this should be 0?
+                  -> resolved: not 0 -- both normalize to -q.length * length_bias,
+                     which is exactly what makes them rank equal
+
+additionally covered by tests:
+- all three implementations (reference recursive, full table, two-row fast)
+  agree for all parameter configurations (property.test.ts)
+- the zig implementation agrees with typescript on the real data files,
+  checked over FFI (zig-ffi.test.ts, skipped unless
+  ../tarshtein-distance/zig-out/lib/liblevvy.so is built)
