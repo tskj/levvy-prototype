@@ -85,3 +85,9 @@ const fuzzy_search_simd = haveLib ? openSymbol("fuzzy_search_simd") : null;
 test.skipIf(!fuzzy_search_simd)('zig fuzzy_search_simd agrees with typescript implementation', async () => {
   await checkAgainstTs(fuzzy_search_simd!, "fuzzy_search_simd");
 });
+
+// the suffix-scan variant of the simd implementation
+const fuzzy_search_simd_scan = haveLib ? openSymbol("fuzzy_search_simd_scan") : null;
+test.skipIf(!fuzzy_search_simd_scan)('zig fuzzy_search_simd_scan agrees with typescript implementation', async () => {
+  await checkAgainstTs(fuzzy_search_simd_scan!, "fuzzy_search_simd_scan");
+});
